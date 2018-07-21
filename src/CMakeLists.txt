@@ -16,7 +16,5 @@ set(CMAKE_C_FLAGS
   ${DEBUG_FLAGS}
 )
 
-add_executable(simple
-  main.c
-  state.c
-)
+FILE(GLOB SRCFILES *.c)
+ADD_EXECUTABLE(../simple ${SRCFILES})

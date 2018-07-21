@@ -1,6 +1,6 @@
-#include "state.h"
-
 #include <malloc.h>
+
+#include "state.h"
 
 struct state *state_new() {
     struct state *s = malloc(sizeof *s);

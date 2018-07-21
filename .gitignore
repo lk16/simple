@@ -6,3 +6,5 @@ src/CMakeFiles/
 src/Makefile
 src/cmake_install.cmake
 src/simple
+src/simple.dir/
+simple
