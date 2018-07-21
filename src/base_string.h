@@ -7,7 +7,7 @@ struct base_string;
 
 struct base_string *base_string_new(const char *raw);
 
-struct base_string *base_string_copy(struct base_string *bs);
+struct base_string *base_string_copy(const struct base_string *bs);
 
 void base_string_destroy(struct base_string *bs);
 

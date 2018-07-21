@@ -9,9 +9,9 @@ struct base_string {
 };
 
 struct base_string *base_string_new(const char *raw) {
-    struct base_string *bs = malloc(sizeof *bs);
+    struct base_string *bs = calloc(1, sizeof *bs);
     bs->length = strlen(raw);
-    bs->raw = malloc(bs->length + 1);
+    bs->raw = calloc(1, bs->length + 1);
     strcpy(bs->raw, raw);
     bs->hash = 0;
     for(size_t i=0; i<bs->length; i++){
@@ -21,7 +21,7 @@ struct base_string *base_string_new(const char *raw) {
     return bs;
 }
 
-struct base_string *base_string_copy(struct base_string *bs) {
+struct base_string *base_string_copy(const struct base_string *bs) {
     return base_string_new(base_string_raw(bs));
 }
 
