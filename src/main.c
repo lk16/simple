@@ -3,11 +3,13 @@
 #include "base_string.h"
 
 int main(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
 
     struct base_string *str, *str2;
 
     str = base_string_new("hello world!");
-    str2 = base_string_new("hello world!");
+    str2 = base_string_copy(str);
 
     printf("hash: %ld %ld\n",
             base_string_hash(str),

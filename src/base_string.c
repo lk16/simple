@@ -21,6 +21,10 @@ struct base_string *base_string_new(const char *raw) {
     return bs;
 }
 
+struct base_string *base_string_copy(struct base_string *bs) {
+    return base_string_new(base_string_raw(bs));
+}
+
 void base_string_destroy(struct base_string *bs) {
     free(bs->raw);
     free(bs);

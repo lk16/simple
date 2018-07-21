@@ -6,12 +6,6 @@ Language rules:
 
 TODO
 ----
-[ ] base_string
-    [ ] new
-    [ ] destroy
-    [ ] hash
-    [ ] equals
-    [ ] raw
 
 [ ] base_map
     [ ] new
@@ -25,6 +19,8 @@ TODO
     [ ] type
     [ ] get_attribute
     [ ] call
+
+[ ] types: a base_map with all types
 
 [ ] root_object: instance of object
 
