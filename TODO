@@ -1,0 +1,53 @@
+
+Language rules:
+- everything is an object
+- there are no global variables
+
+
+TODO
+----
+[ ] base_string
+    [ ] new
+    [ ] destroy
+    [ ] hash
+    [ ] equals
+    [ ] raw
+
+[ ] base_map
+    [ ] new
+    [ ] copy
+    [ ] destroy
+    [ ] set_at
+    [ ] get_at
+
+[ ] object
+    [ ] get_id
+    [ ] type
+    [ ] get_attribute
+    [ ] call
+
+[ ] root_object: instance of object
+
+[ ] null_object: represents absence of object
+
+[ ] vector
+    [ ] new
+    [ ] copy
+    [ ] destroy
+    [ ] push
+    [ ] pop
+    [ ] get_at
+    [ ] set_at
+    [ ] size
+    [ ] clear
+    [ ] iterate
+
+
+
+[ ] string
+    [ ] new
+    [ ] copy
+    [ ] destroy
+    [ ] add
+    [ ] multiply
+    [ ]
