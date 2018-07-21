@@ -1,28 +1,36 @@
 #include <stdio.h>
 
-#include "base_string.h"
+#include "base_map.h"
+#include "object.h"
 
 int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
 
-    struct base_string *str, *str2;
+    char key_raw[10];
 
-    str = base_string_new("hello world!");
-    str2 = base_string_copy(str);
+    struct base_map *map = base_map_new();
 
-    printf("hash: %ld %ld\n",
-            base_string_hash(str),
-            base_string_hash(str2)
-    );
+    for(int i=0; i<99999; i++) {
+        snprintf(key_raw, sizeof(key_raw), "%d", i);
+        struct base_string *key = base_string_new(key_raw);
+        struct object *value = object_new(i);
+        base_map_set(map, key, value);
+        base_string_destroy(key);
+    }
 
-    printf("raw: %s\n", base_string_raw(str));
-    printf("raw: %s\n", base_string_raw(str2));
+    const struct base_string *key;
+    struct object *value;
+    struct base_map_iterator *iter = base_map_iterator_new(map, &key, &value);
 
-    printf("equal: %d\n", base_string_equals(str, str2) ? 1 : 0);
 
-    base_string_destroy(str);
-    base_string_destroy(str2);
+    while(base_map_iterator_next(iter)) {
+        printf("%s -> %d\n", base_string_raw(key), object_get(value));
+    }
+
+    base_map_iterator_destroy(iter);
+
+    base_map_destroy(map);
 
     return 0;
 }

@@ -1,6 +1,6 @@
-#include "base_map.h"
-
 #include <malloc.h>
+
+#include "base_map.h"
 
 struct base_map_entry {
     struct base_string *key;
@@ -39,7 +39,7 @@ struct base_map {
     size_t size;
 };
 
-struct base_map *base_map_new() {
+struct base_map *base_map_new(void) {
     struct base_map *bm = calloc(1, sizeof *bm);
     bm->bucket_count = 15;
     bm->size = 0;
@@ -55,8 +55,8 @@ void base_map_destroy(struct base_map *bm) {
     free(bm);
 }
 
-static float base_map_load_factor(const struct base_map *bm) {
-    return ((float)bm->size) / bm->bucket_count;
+static double base_map_load_factor(const struct base_map *bm) {
+    return ((double)bm->size) / bm->bucket_count;
 }
 
 static void base_map_rehash(struct base_map *bm) {
@@ -125,4 +125,64 @@ struct object *base_map_get(
         return found->value;
     }
     return NULL;
+}
+
+struct base_map_iterator {
+    struct base_map *bm;
+    size_t bucket_id;
+    struct base_map_entry *entry;
+    const struct base_string **output_key;
+    struct object **output_value;
+};
+
+struct base_map_iterator *base_map_iterator_new(
+    struct base_map *bm,
+    const struct base_string **key,
+    struct object **value
+) {
+    struct base_map_iterator *bmi = calloc(1, sizeof *bmi);
+    bmi->bm = bm;
+    bmi->bucket_id = 0;
+    bmi->entry = bm->buckets[0];
+    bmi->output_key = key;
+    bmi->output_value = value;
+    return bmi;
+}
+
+bool base_map_iterator_next(
+    struct base_map_iterator *bmi
+) {
+    struct base_map_entry *entry = bmi->entry;
+
+    if(entry) {
+        bmi->entry = entry->next;
+        *bmi->output_key = entry->key;
+        *bmi->output_value = entry->value;
+        return true;
+    }
+
+    size_t bucket_id = bmi->bucket_id + 1;
+    size_t bucket_count = bmi->bm->bucket_count;
+
+    while(bucket_id < bucket_count) {
+        entry = bmi->bm->buckets[bucket_id];
+
+        if(entry) {
+            bmi->bucket_id = bucket_id;
+            bmi->entry = entry->next;
+            *bmi->output_key = entry->key;
+            *bmi->output_value = entry->value;
+            return true;
+        }
+
+        bucket_id++;
+    }
+
+    return false;
+}
+
+void base_map_iterator_destroy(
+    struct base_map_iterator *bmi
+) {
+    free(bmi);
 }
