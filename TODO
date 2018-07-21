@@ -8,23 +8,51 @@ TODO
 ----
 
 [ ] base_map
-    [ ] new
-    [ ] copy
-    [ ] destroy
-    [ ] set_at
-    [ ] get_at
+    [ ] remove
+    [ ] size
 
 [ ] object
-    [ ] get_id
-    [ ] type
     [ ] get_attribute
-    [ ] call
+    [ ] set_attribute
+    [ ] special cases:
+        [ ] read only
+            [ ] get_id
+            [ ] get_hash
+            [ ] get_type
+            [ ] get_parent
+            [ ] has_type
+            [ ] operators
+                [ ] not_equals
+                [ ] greater_than
+                [ ] greater_or_equal
+                [ ] less_or_equal
+                [ ] add_assign
+                [ ] subtract_assign
+                [ ] multiply_assign
+                [ ] divide_assign
 
-[ ] types: a base_map with all types
+        [ ] call
+            [ ] functions
+            [ ] types (constructor)
+        [ ] casting
+            [ ] parent type
+            [ ] boolean (truth value)
+            [ ] string representation
+    [ ] operators
+        [ ] comparison
+            [ ] less_than
+            [ ] equals
+        [ ] basic math
+            [ ] add
+            [ ] subtract
+            [ ] multiply
+            [ ] divide
 
-[ ] root_object: instance of object
+[ ] registry: a base_map with all types
 
-[ ] null_object: represents absence of object
+[ ] type type:
+
+[ ] null: represents absence of object
 
 [ ] vector
     [ ] new
@@ -38,12 +66,12 @@ TODO
     [ ] clear
     [ ] iterate
 
-
-
 [ ] string
     [ ] new
     [ ] copy
     [ ] destroy
     [ ] add
     [ ] multiply
-    [ ]
+    [ ] join
+    [ ] strip
+    [ ] lower
