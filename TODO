@@ -5,63 +5,11 @@ Language rules:
 - ref count
 - no global variables
 - all arguments must be used or explicitly silenced
-- all objects (including types) are in snake case
-- constants are LIKE_THIS
+- all objects (including types) are in snake_case
+- constants are written LIKE_THIS
 
 TODO
 ----
-
-[ ] object
-    [ ] _get_attribute
-    [ ] _set_attribute
-    [ ] _special cases:
-        [ ] _read only
-            [ ] _get_id
-            [ ] _get_hash
-            [ ] _get_type
-            [ ] _get_parent
-            [ ] _has_type
-            [ ] _operators
-                [ ] _not_equals
-                [ ] _greater_than
-                [ ] _greater_or_equal
-                [ ] _less_or_equal
-                [ ] _add_assign
-                [ ] _subtract_assign
-                [ ] _multiply_assign
-                [ ] _divide_assign
-        [ ] _call
-            [ ] functions
-            [ ] types (constructor)
-        [ ] _cast
-            [ ] parent type
-            [ ] boolean (truth value)
-            [ ] string representation
-    [ ] operators
-        [ ] comparison
-            [ ] _less_than
-            [ ] _equals
-        [ ] basic math
-            [ ] _add
-            [ ] _subtract
-            [ ] _multiply
-            [ ] _divide
-
-[ ] registry: a base_map with all types
-
-[ ] type type:
-
-[ ] null: represents absence of object
-
-[ ] integer
-
-[ ] error type
-    
-[ ] test instantiating integer
-
-[ ] refactor bad names
-
-[ ] unit test everything this far
 
 [ ] string
     [ ] new
@@ -69,9 +17,14 @@ TODO
     [ ] destroy
     [ ] add
     [ ] multiply
-    [ ] join
-    [ ] strip
-    [ ] lower
+
+[ ] error type
+    
+[ ] test instantiating integer
+
+[ ] refactor bad var names
+
+[ ] unit test everything this far
 
 [ ] vector
     [ ] new
@@ -85,8 +38,6 @@ TODO
     [ ] clear
     [ ] iterate
 
-[ ] 
-    
 [ ] char
 
 

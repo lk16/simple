@@ -43,3 +43,5 @@ struct object *object_multiply_assign(struct object *o, const struct object *arg
 
 struct object *object_divide(struct object *o, const struct object *args);
 struct object *object_divide_assign(struct object *o, const struct object *args);
+
+struct object *object_to_string(struct object *o, const struct object *args);

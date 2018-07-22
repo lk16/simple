@@ -252,7 +252,9 @@ struct object *object_cast(
          }         
     }
     
-    // TODO cast to string or bool
+    // TODO integer/bool/float conversion
+    
+    // TODO anyting to string conversion
     
     // TODO return error
     return NULL;
@@ -506,17 +508,212 @@ struct object *object_add_assign(struct object *o, const struct object *args) {
             return NULL;
     }
     
+    return result;
 }
 
-struct object *object_subtract(struct object *o, const struct object *args);
-struct object *object_subtract_assign(struct object *o, const struct object *args);
+struct object *object_subtract(
+    struct object *o,
+    const struct object *args
+) {
 
-struct object *object_multiply(struct object *o, const struct object *args);
-struct object *object_multiply_assign(struct object *o, const struct object *args);
+    if(args->kind != o->kind) {
+        // TODO return error
+        return NULL;
+    }
+    
+    switch(o->kind){
+        case OBJECT_INTEGER:
+            return object_new_int(o->value_integer - args->value_integer);
+        case OBJECT_DOUBLE:
+            return object_new_double(o->value_double - args->value_double);
+        case OBJECT_STRING:
+            // TODO implement string
+            return NULL;
+        case OBJECT_BOOL:
+        case OBJECT_FUNCTION:
+        case OBJECT_MAP:
+        case OBJECT_NULL:
+        case OBJECT_STRUCTURE:
+        case OBJECT_TYPE:
+        case OBJECT_VECTOR:
+            // TODO return error
+            return NULL;
+    }
+}
 
-struct object *object_divide(struct object *o, const struct object *args);
-struct object *object_divide_assign(struct object *o, const struct object *args);
+struct object *object_subtract_assign(
+    struct object *o,
+    const struct object *args
+) {
+    struct object *result = object_subtract(o, args);
+    
+    // TODO check if an error occurred
+    
+    switch(o->kind){
+        case OBJECT_INTEGER:
+            o->value_integer = result->value_integer;
+            break;
+        case OBJECT_DOUBLE:
+            o->value_double = result->value_double;
+            break;
+        case OBJECT_STRING:
+            // TODO implement string
+            return NULL;
+        case OBJECT_BOOL:
+        case OBJECT_FUNCTION:
+        case OBJECT_MAP:
+        case OBJECT_NULL:
+        case OBJECT_STRUCTURE:
+        case OBJECT_TYPE:
+        case OBJECT_VECTOR:
+            // TODO return error
+            return NULL;
+    }
+    
+    return result;
+}
 
+struct object *object_multiply(
+    struct object *o,
+    const struct object *args
+) {
+    
+    if(args->kind != o->kind) {
+        // TODO return error
+        return NULL;
+    }
+    
+    switch(o->kind){
+        case OBJECT_INTEGER:
+            return object_new_int(o->value_integer * args->value_integer);
+        case OBJECT_DOUBLE:
+            return object_new_double(o->value_double * args->value_double);
+        case OBJECT_STRING:
+            // TODO implement string
+            return NULL;
+        case OBJECT_BOOL:
+        case OBJECT_FUNCTION:
+        case OBJECT_MAP:
+        case OBJECT_NULL:
+        case OBJECT_STRUCTURE:
+        case OBJECT_TYPE:
+        case OBJECT_VECTOR:
+            // TODO return error
+            return NULL;
+    }
+}
 
+struct object *object_multiply_assign(
+    struct object *o,
+    const struct object *args
+) {
+    
+    struct object *result = object_multiply(o, args);
+    
+    // TODO check if an error occurred
+    
+    switch(o->kind){
+        case OBJECT_INTEGER:
+            o->value_integer = result->value_integer;
+            break;
+        case OBJECT_DOUBLE:
+            o->value_double = result->value_double;
+            break;
+        case OBJECT_STRING:
+            // TODO implement string
+            return NULL;
+        case OBJECT_BOOL:
+        case OBJECT_FUNCTION:
+        case OBJECT_MAP:
+        case OBJECT_NULL:
+        case OBJECT_STRUCTURE:
+        case OBJECT_TYPE:
+        case OBJECT_VECTOR:
+            // TODO return error
+            return NULL;
+    }
+    
+    return result;
+}
 
+struct object *object_divide(
+    struct object *o,
+    const struct object *args
+) {
+    if(args->kind != o->kind) {
+        // TODO return error
+        return NULL;
+    }
+
+    switch(o->kind){
+        case OBJECT_INTEGER:
+            if(args->value_integer == 0) {
+                // TODO return error
+                return NULL;
+            }
+            return object_new_int(o->value_integer / args->value_integer);
+        case OBJECT_DOUBLE:
+            return object_new_double(o->value_double / args->value_double);
+        case OBJECT_STRING:
+            // TODO implement string
+            return NULL;
+        case OBJECT_BOOL:
+        case OBJECT_FUNCTION:
+        case OBJECT_MAP:
+        case OBJECT_NULL:
+        case OBJECT_STRUCTURE:
+        case OBJECT_TYPE:
+        case OBJECT_VECTOR:
+            // TODO return error
+            return NULL;
+    }
+}
+struct object *object_divide_assign(
+    struct object *o,
+    const struct object *args
+) {
+    
+    struct object *result = object_divide(o, args);
+    
+    // TODO check if an error occurred
+    
+    switch(o->kind){
+        case OBJECT_INTEGER:
+            o->value_integer = result->value_integer;
+            break;
+        case OBJECT_DOUBLE:
+            o->value_double = result->value_double;
+            break;
+        case OBJECT_STRING:
+            // TODO implement string
+            return NULL;
+        case OBJECT_BOOL:
+        case OBJECT_FUNCTION:
+        case OBJECT_MAP:
+        case OBJECT_NULL:
+        case OBJECT_STRUCTURE:
+        case OBJECT_TYPE:
+        case OBJECT_VECTOR:
+            // TODO return error
+            return NULL;
+    }
+    
+    return result;
+    
+}
+
+struct object *object_to_string(
+    struct object *o,
+    const struct object *args
+) {
+    
+    (void)args;
+    (void)o;
+    
+    // TODO implement with open_memstream()
+    
+    
+    // TODO return error
+    return NULL;
+}
 
