@@ -127,6 +127,29 @@ struct object *base_map_get(
     return NULL;
 }
 
+void base_map_remove(
+    struct base_map* bm,
+    const struct base_string* key
+) {
+    size_t bucket_id = base_string_hash(key) % bm->bucket_count;
+    struct base_map_entry **entry = &bm->buckets[bucket_id];
+    
+    while(*entry) {
+        if(base_string_equals((*entry)->key, key)) {
+            struct base_map_entry *removed_entry = *entry;
+            *entry = (*entry)->next;
+            removed_entry->next = NULL;
+            base_map_entry_destroy(removed_entry);
+        }
+        entry = &(*entry)->next;
+    }
+}
+
+size_t base_map_size(const struct base_map* bm)
+{
+    return bm->size;
+}
+
 struct base_map_iterator {
     struct base_map *bm;
     size_t bucket_id;

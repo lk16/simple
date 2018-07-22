@@ -8,3 +8,5 @@ src/cmake_install.cmake
 src/simple
 src/simple.dir/
 simple
+.kdev4/
+simple.kdev4

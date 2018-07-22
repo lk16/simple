@@ -1,8 +1,10 @@
 
 Language rules:
 - everything is an object
-- there are no global variables
-
+- strict typing
+- ref count
+- no global variables
+- all arguments must be used or explicitly silenced
 
 TODO
 ----
@@ -30,7 +32,6 @@ TODO
                 [ ] subtract_assign
                 [ ] multiply_assign
                 [ ] divide_assign
-
         [ ] call
             [ ] functions
             [ ] types (constructor)

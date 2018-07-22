@@ -5,6 +5,8 @@
 #include "base_string.h"
 #include "object.h"
 
+struct base_map;
+
 struct base_map *base_map_new(void);
 
 void base_map_destroy(struct base_map *bm);
@@ -20,6 +22,15 @@ struct object *base_map_get(
     const struct base_string *key
 );
 
+void base_map_remove(
+    struct base_map *bm,
+    const struct base_string *key
+);
+
+size_t base_map_size(
+    const struct base_map *bm
+);
+
 struct base_map_iterator *base_map_iterator_new(
     struct base_map *bm,
     const struct base_string **key,
@@ -33,3 +44,5 @@ bool base_map_iterator_next(
 void base_map_iterator_destroy(
     struct base_map_iterator *bmi
 );
+
+
