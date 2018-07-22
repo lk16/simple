@@ -27,7 +27,7 @@ struct object {
     union {
         int value_integer;
         bool value_boolean; 
-        double value_float;
+        double value_double;
         struct base_string *value_string;
         object_function_t value_function;
         struct structure *value_structure;
@@ -50,8 +50,7 @@ static bool is_builtin_type(const struct base_string *type_name) {
 }
 
 static struct object *get_type(
-    const struct base_string *type_name,
-    struct type_registry *tr
+    const struct base_string *type_name
 ) {
 
     struct object *type = calloc(1, sizeof *type);
@@ -62,7 +61,7 @@ static struct object *get_type(
         type->type = type;
     } else {
         struct base_string *type_string = base_string_new("type");
-        type->type = type_registry_get_type(tr, type_string);
+        type->type = type_registry_get_type(type_string);
         base_string_destroy(type_string);
     }
         
@@ -92,15 +91,14 @@ static enum object_kind get_kind(const struct base_string *type_name) {
 
 struct object *object_new(
     const struct base_string *type_name,
-    const struct base_string *instance_name,
-    struct type_registry *tr
+    const struct base_string *instance_name
 ) {
     if(base_string_equals_raw(type_name, "type")){
-        return get_type(instance_name, tr);        
+        return get_type(instance_name);        
     }
 
     struct object *o = calloc(1, sizeof *o);
-    o->type = type_registry_get_type(tr, type_name);
+    o->type = type_registry_get_type(type_name);
     o->kind = get_kind(type_name);
     o->attributes = base_map_new();
     o->parent = NULL; 
@@ -112,6 +110,31 @@ struct object *object_new(
     }
     return o;
 }
+
+static struct object *object_new_int(int value) {
+    struct base_string *int_string = base_string_new("int");
+    struct object *o = object_new(int_string, NULL);
+    base_string_destroy(int_string);
+    o->value_integer = value;
+    return o;
+}
+
+static struct object *object_new_bool(bool value) {
+    struct base_string *bool_string = base_string_new("bool");
+    struct object *o = object_new(bool_string, NULL);
+    base_string_destroy(bool_string);
+    o->value_boolean = value;
+    return o;
+}
+
+static struct object *object_new_null(void) {
+    struct base_string *null_string = base_string_new("null");
+    struct object *o = object_new(null_string, NULL);
+    base_string_destroy(null_string);
+    return o;
+}
+
+
 
 struct object *object_copy(const struct object *o) {
     // TODO
@@ -154,8 +177,7 @@ struct object * object_set_attribute(
                 return NULL;
             }
             base_map_set(ancestor->attributes, key, value);
-            // TODO return null object
-            return NULL;
+            return object_new_null();
         }
         ancestor = ancestor->parent;
     }
@@ -166,8 +188,7 @@ struct object * object_set_attribute(
     }
  
     base_map_set(o->attributes, key,value);
-    // TODO return null object
-    return NULL;
+    return object_new_null();
 }
 
 struct object *object_get_type(
@@ -188,8 +209,7 @@ struct object *object_has_type(
     
     while(ancestor) {
          if(ancestor->type == args) {
-             // TODO return true object
-             return NULL;
+             return object_new_bool(true);
          }
          parent = object_get_parent(ancestor, NULL);
          if(ancestor == parent) {
@@ -197,8 +217,7 @@ struct object *object_has_type(
          }         
     }
     
-    // TODO return false object
-    return NULL;
+    return object_new_bool(false);
 }
 
 struct object *object_get_parent(
@@ -237,17 +256,78 @@ struct object *object_assign(
     struct object *o,
     const struct object *args
 ) {
-    if(o->type != args->type) {
+    switch(o->kind){
+        case OBJECT_NULL:
+            break;
+        case OBJECT_BOOL:
+            o->value_boolean = args->value_boolean;
+            break;
+        case OBJECT_INTEGER:
+            o->value_integer = args->value_integer;
+            break;
+        case OBJECT_DOUBLE:
+            o->value_double = args->value_double;
+            break;
+        case OBJECT_STRING:
+            // TODO implement string copy
+            break;
+        case OBJECT_VECTOR:
+            // TODO implement vector
+            break;
+        case OBJECT_MAP:
+            // TODO implement map
+            break;
+        case OBJECT_FUNCTION:
+            o->value_function = args->value_function;
+            break;
+        case OBJECT_TYPE:
+            o->type = args->type;
+            break;
+        case OBJECT_STRUCTURE:
+            // TODO return error
+            break;
+    }
+    
+    return object_new_null();
+}
+
+struct object *object_hash(
+    struct object *o,
+    const struct object *args
+) {
+    assert(args->kind == OBJECT_NULL);
+    
+    if(!o->constant) {
         // TODO return error
         return NULL;
     }
 
-    // copy from args to o
-    // TODO return null object
-    return NULL;
+    switch(o->kind){
+        case OBJECT_NULL:
+            return object_new_int(-1);
+        case OBJECT_BOOL:
+            return object_new_int(o->value_boolean ? 1 : 0);
+        case OBJECT_INTEGER:
+            return object_new_int(o->value_integer * 0x3e5313a0);
+        case OBJECT_DOUBLE:
+            if(o->value_double == 0.0) {
+                return object_new_int(-2);
+            }
+            return object_new_int(*(int*)&o->value_double);
+        case OBJECT_STRING:
+            // TODO implement string
+            return NULL;
+        case OBJECT_FUNCTION:
+        case OBJECT_MAP:
+        case OBJECT_STRUCTURE:
+        case OBJECT_TYPE:
+        case OBJECT_VECTOR:
+            // TODO return error
+            return NULL;
+    }
 }
 
-struct object *object_hash(const struct object *o);
+
 struct object *object_equals(struct object *o, const struct object *args);
 struct object *object_not_equals(struct object *o, const struct object *args);
 

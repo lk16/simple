@@ -7,8 +7,7 @@ struct type_registry;
 
 struct object *object_new(
     const struct base_string *type_name,
-    const struct base_string *instance_name,
-    struct type_registry *tr
+    const struct base_string *instance_name
 );
 
 struct object *object_copy(const struct object *o);
@@ -23,7 +22,7 @@ struct object *object_get_parent(struct object *o, const struct object *args);
 struct object *object_cast(struct object *o, const struct object *args);
 struct object *object_assign(struct object *o, const struct object *args);
 
-struct object *object_hash(const struct object *o);
+struct object *object_hash(struct object *o, const struct object *args);
 struct object *object_equals(struct object *o, const struct object *args);
 struct object *object_not_equals(struct object *o, const struct object *args);
 
