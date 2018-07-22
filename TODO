@@ -9,10 +9,6 @@ Language rules:
 TODO
 ----
 
-[ ] base_map
-    [ ] remove
-    [ ] size
-
 [ ] object
     [ ] get_attribute
     [ ] set_attribute
@@ -55,6 +51,25 @@ TODO
 
 [ ] null: represents absence of object
 
+[ ] integer:
+    [ ] implement everything from object needed
+    
+[ ] test instantiating integer
+
+[ ] refactor bad names
+
+[ ] unit test everything this far
+
+[ ] string
+    [ ] new
+    [ ] copy
+    [ ] destroy
+    [ ] add
+    [ ] multiply
+    [ ] join
+    [ ] strip
+    [ ] lower
+
 [ ] vector
     [ ] new
     [ ] copy
@@ -67,12 +82,4 @@ TODO
     [ ] clear
     [ ] iterate
 
-[ ] string
-    [ ] new
-    [ ] copy
-    [ ] destroy
-    [ ] add
-    [ ] multiply
-    [ ] join
-    [ ] strip
-    [ ] lower
+
