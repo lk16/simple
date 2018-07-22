@@ -10,3 +10,4 @@ src/simple.dir/
 simple
 .kdev4/
 simple.kdev4
+*.kate-swp

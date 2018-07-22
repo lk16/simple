@@ -5,45 +5,47 @@ Language rules:
 - ref count
 - no global variables
 - all arguments must be used or explicitly silenced
+- all objects (including types) are in snake case
+- constants are LIKE_THIS
 
 TODO
 ----
 
 [ ] object
-    [ ] get_attribute
-    [ ] set_attribute
-    [ ] special cases:
-        [ ] read only
-            [ ] get_id
-            [ ] get_hash
-            [ ] get_type
-            [ ] get_parent
-            [ ] has_type
-            [ ] operators
-                [ ] not_equals
-                [ ] greater_than
-                [ ] greater_or_equal
-                [ ] less_or_equal
-                [ ] add_assign
-                [ ] subtract_assign
-                [ ] multiply_assign
-                [ ] divide_assign
-        [ ] call
+    [ ] _get_attribute
+    [ ] _set_attribute
+    [ ] _special cases:
+        [ ] _read only
+            [ ] _get_id
+            [ ] _get_hash
+            [ ] _get_type
+            [ ] _get_parent
+            [ ] _has_type
+            [ ] _operators
+                [ ] _not_equals
+                [ ] _greater_than
+                [ ] _greater_or_equal
+                [ ] _less_or_equal
+                [ ] _add_assign
+                [ ] _subtract_assign
+                [ ] _multiply_assign
+                [ ] _divide_assign
+        [ ] _call
             [ ] functions
             [ ] types (constructor)
-        [ ] casting
+        [ ] _cast
             [ ] parent type
             [ ] boolean (truth value)
             [ ] string representation
     [ ] operators
         [ ] comparison
-            [ ] less_than
-            [ ] equals
+            [ ] _less_than
+            [ ] _equals
         [ ] basic math
-            [ ] add
-            [ ] subtract
-            [ ] multiply
-            [ ] divide
+            [ ] _add
+            [ ] _subtract
+            [ ] _multiply
+            [ ] _divide
 
 [ ] registry: a base_map with all types
 
