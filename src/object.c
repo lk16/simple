@@ -134,7 +134,13 @@ static struct object *object_new_null(void) {
     return o;
 }
 
-
+static struct object *object_new_double(double value) {
+    struct base_string *double_string = base_string_new("double");
+    struct object *o = object_new(double_string, NULL);
+    base_string_destroy(double_string);
+    o->value_double = value;
+    return o;
+}
 
 struct object *object_copy(const struct object *o) {
     // TODO
@@ -308,15 +314,11 @@ struct object *object_hash(
         case OBJECT_BOOL:
             return object_new_int(o->value_boolean ? 1 : 0);
         case OBJECT_INTEGER:
-            return object_new_int(o->value_integer * 0x3e5313a0);
-        case OBJECT_DOUBLE:
-            if(o->value_double == 0.0) {
-                return object_new_int(-2);
-            }
-            return object_new_int(*(int*)&o->value_double);
+            return object_new_int(o->value_integer ^ 0x3e5313a0);
         case OBJECT_STRING:
             // TODO implement string
             return NULL;
+        case OBJECT_DOUBLE:
         case OBJECT_FUNCTION:
         case OBJECT_MAP:
         case OBJECT_STRUCTURE:
@@ -327,18 +329,184 @@ struct object *object_hash(
     }
 }
 
+struct object *object_equals(
+    struct object *o,
+    const struct object *args
+) {
+    if(args->kind != o->kind) {
+        // TODO return error
+        return NULL;
+    }
+    
+    switch(o->kind){
+        case OBJECT_NULL:
+            return object_new_bool(true);
+        case OBJECT_BOOL:
+            return object_new_bool(o->value_boolean == args->value_boolean);
+        case OBJECT_INTEGER:
+            return object_new_bool(o->value_integer == args->value_integer);
+        case OBJECT_STRING:
+            return object_new_bool(base_string_equals(o->value_string, args->value_string));
+        case OBJECT_FUNCTION:
+            return object_new_bool(o->value_function == args->value_function);
+        case OBJECT_MAP:
+            // TODO map
+            return NULL;
+        case OBJECT_VECTOR:
+            // TODO vector
+            return NULL;
+        case OBJECT_TYPE:
+            return object_new_bool(o->type == args->type);
+        case OBJECT_DOUBLE:
+        case OBJECT_STRUCTURE:
+            // TODO return error
+            return NULL;
+    }
+}
 
-struct object *object_equals(struct object *o, const struct object *args);
-struct object *object_not_equals(struct object *o, const struct object *args);
+struct object *object_not_equals(
+    struct object *o,
+    const struct object *args
+) {
+    struct object *result = object_equals(o, args);
+    
+    if(result->kind != OBJECT_BOOL) {
+        return result;
+    }
+    
+    result->value_boolean = !result->value_boolean;
+    return result;
+}
 
-struct object *object_less_than(struct object *o, const struct object *args);
-struct object *object_equals(struct object *o, const struct object *args);
-struct object *object_greater_than(struct object *o, const struct object *args);
-struct object *object_greater_or_equal(struct object *o, const struct object *args);
-struct object *object_less_or_equal(struct object *o, const struct object *args);
+static struct object *object_less_than_const(
+    const struct object *o,
+    const struct object *args
+) {
 
-struct object *object_add(struct object *o, const struct object *args);
-struct object *object_add_assign(struct object *o, const struct object *args);
+    if(args->kind != o->kind) {
+        // TODO return error
+        return NULL;
+    }
+    
+    switch(o->kind){
+        case OBJECT_NULL:
+            return object_new_bool(false);
+        case OBJECT_BOOL:
+            return object_new_bool(o->value_boolean < args->value_boolean);
+        case OBJECT_INTEGER:
+            return object_new_bool(o->value_integer < args->value_integer);
+        case OBJECT_DOUBLE:
+            return object_new_bool(o->value_double < args->value_double);
+        case OBJECT_STRING:
+            return object_new_bool(strcmp(base_string_raw(o->value_string), base_string_raw(args->value_string)) < 0);
+        case OBJECT_TYPE:
+            return object_new_bool(o->type == args->type);
+        case OBJECT_FUNCTION:
+        case OBJECT_MAP:
+        case OBJECT_STRUCTURE:
+        case OBJECT_VECTOR:
+            // TODO return error
+            return NULL;
+    }
+}
+    
+struct object *object_less_than(
+    struct object *o,
+    const struct object *args
+) {
+    return object_less_than_const(o, args);
+}
+
+struct object *object_greater_than(
+    struct object *o,
+    const struct object *args
+) {
+    return object_less_than_const(args, o);
+}
+
+struct object *object_greater_or_equal(
+    struct object *o,
+    const struct object *args
+) {
+    struct object *result = object_less_than_const(o, args);
+    
+    if(result->kind != OBJECT_BOOL) {
+        return result;
+    }
+    
+    result->value_boolean = !result->value_boolean;
+    return result;
+}
+
+struct object *object_less_or_equal(
+    struct object *o,
+    const struct object *args
+) {
+    struct object *result = object_less_than_const(args, o);
+    
+    if(result->kind != OBJECT_BOOL) {
+        return result;
+    }
+    
+    result->value_boolean = !result->value_boolean;
+    return result; 
+}
+
+struct object *object_add(
+    struct object *o,
+    const struct object *args
+) {
+    if(args->kind != o->kind) {
+        // TODO return error
+        return NULL;
+    }
+    
+    switch(o->kind){
+        case OBJECT_INTEGER:
+            return object_new_int(o->value_integer + args->value_integer);
+        case OBJECT_DOUBLE:
+            return object_new_double(o->value_double + args->value_double);
+        case OBJECT_STRING:
+            // TODO implement string
+            return NULL;
+        case OBJECT_BOOL:
+        case OBJECT_FUNCTION:
+        case OBJECT_MAP:
+        case OBJECT_NULL:
+        case OBJECT_STRUCTURE:
+        case OBJECT_TYPE:
+        case OBJECT_VECTOR:
+            // TODO return error
+            return NULL;
+    }
+}
+struct object *object_add_assign(struct object *o, const struct object *args) {
+    struct object *result = object_add(o, args);
+    
+    // TODO check if an error occurred
+    
+        switch(o->kind){
+        case OBJECT_INTEGER:
+            o->value_integer = result->value_integer;
+            break;
+        case OBJECT_DOUBLE:
+            o->value_double = result->value_double;
+            break;
+        case OBJECT_STRING:
+            // TODO implement string
+            return NULL;
+        case OBJECT_BOOL:
+        case OBJECT_FUNCTION:
+        case OBJECT_MAP:
+        case OBJECT_NULL:
+        case OBJECT_STRUCTURE:
+        case OBJECT_TYPE:
+        case OBJECT_VECTOR:
+            // TODO return error
+            return NULL;
+    }
+    
+}
 
 struct object *object_subtract(struct object *o, const struct object *args);
 struct object *object_subtract_assign(struct object *o, const struct object *args);
