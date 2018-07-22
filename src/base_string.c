@@ -46,7 +46,14 @@ bool base_string_equals(
         return false;
     }
 
-    return strcmp(base_string_raw(lhs), base_string_raw(rhs)) == 0;
+    return base_string_equals_raw(lhs, base_string_raw(rhs)) == 0;
+}
+
+bool base_string_equals_raw(
+    const struct base_string *lhs,
+    const char *rhs
+) {
+    return strcmp(base_string_raw(lhs), rhs) == 0;
 }
 
 const char *base_string_raw(const struct base_string *bs) {

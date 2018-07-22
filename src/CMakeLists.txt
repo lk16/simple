@@ -5,7 +5,7 @@ project(simple)
 find_package(PkgConfig)
 
 set(FLAGS
-" -std=c99 -I .. -pthread -Weverything"
+" -std=c11 -I .. -pthread -Weverything -Wno-padded"
 )
 
 set(DEBUG_FLAGS "${FLAGS} -g")

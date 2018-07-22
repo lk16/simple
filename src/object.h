@@ -3,12 +3,17 @@
 #include "base_string.h"
 
 struct object;
+struct type_registry;
 
-struct object *object_new(const struct base_string *type_name);
+struct object *object_new(
+    const struct base_string *type_name,
+    const struct base_string *instance_name,
+    struct type_registry *tr
+);
 struct object *object_copy(const struct object *o);
 
-struct object *object_get_attribute(object *o, const struct object *args);
-struct object *object_set_attribute(object *o, const struct object *args);
+struct object *object_get_attribute(struct object *o, const struct object *args);
+struct object *object_set_attribute(struct object *o, const struct object *args);
 
 struct object *object_get_id(struct object *o, const struct object *args);
 struct object *object_get_name(struct object *o, const struct object *args);
@@ -40,20 +45,3 @@ struct object *object_multiply_assign(struct object *o, const struct object *arg
 
 struct object *object_divide(struct object *o, const struct object *args);
 struct object *object_divide_assign(struct object *o, const struct object *args);
-
-
-
-
-struct type_registry;
-struct type;
-struct type_operators;
-
-struct type_registry *type_registry_new(void);
-void type_registry_destroy(struct type_registry *tr);
-
-struct type *type_registry_get_type(struct type_registry *tr, const struct base_string *type_name);
-
-struct object *type_registry_get_object_type(struct type_registry *tr);
-struct object *type_registry_get_object_null(struct type_registry *tr);
-struct object *type_registry_get_object_true(struct type_registry *tr);
-struct object *type_registry_get_object_false(struct type_registry *tr);

@@ -18,4 +18,9 @@ bool base_string_equals(
     const struct base_string *rhs
 );
 
+bool base_string_equals_raw(
+    const struct base_string *lhs,
+    const char *rhs
+);
+
 const char *base_string_raw(const struct base_string *bs);
