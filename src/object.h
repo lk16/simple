@@ -10,19 +10,18 @@ struct object *object_new(
     const struct base_string *instance_name,
     struct type_registry *tr
 );
+
 struct object *object_copy(const struct object *o);
 
-struct object *object_get_attribute(struct object *o, const struct object *args);
-struct object *object_set_attribute(struct object *o, const struct object *args);
-
-struct object *object_get_id(struct object *o, const struct object *args);
-struct object *object_get_name(struct object *o, const struct object *args);
+struct object *object_get_attribute(struct object *o, const struct base_string *key);
+struct object *object_set_attribute(struct object *o, const struct base_string *key, struct object *value);
 
 struct object *object_get_type(struct object *o, const struct object *args);
 struct object *object_has_type(struct object *o, const struct object *args);
 
 struct object *object_get_parent(struct object *o, const struct object *args);
 struct object *object_cast(struct object *o, const struct object *args);
+struct object *object_assign(struct object *o, const struct object *args);
 
 struct object *object_hash(const struct object *o);
 struct object *object_equals(struct object *o, const struct object *args);

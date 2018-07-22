@@ -31,6 +31,8 @@ size_t base_map_size(
     const struct base_map *bm
 );
 
+struct base_map_iterator;
+
 struct base_map_iterator *base_map_iterator_new(
     struct base_map *bm,
     const struct base_string **key,

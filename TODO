@@ -53,8 +53,9 @@ TODO
 
 [ ] null: represents absence of object
 
-[ ] integer:
-    [ ] implement everything from object needed
+[ ] integer
+
+[ ] error type
     
 [ ] test instantiating integer
 
@@ -83,5 +84,10 @@ TODO
     [ ] size
     [ ] clear
     [ ] iterate
+
+[ ] 
+    
+[ ] char
+
 
 
