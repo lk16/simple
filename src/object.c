@@ -712,7 +712,6 @@ struct object *object_to_string(
     
     // TODO implement with open_memstream()
     
-    
     // TODO return error
     return NULL;
 }
