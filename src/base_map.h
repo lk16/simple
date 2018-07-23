@@ -3,7 +3,7 @@
 #include <stddef.h>
 
 #include "base_string.h"
-#include "object.h"
+#include "type.h"
 
 struct base_map;
 
