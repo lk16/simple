@@ -93,7 +93,6 @@ struct object *object_set(
     const struct base_string *key,
     struct object *value
 ) {
-    struct object *result = NULL;
     struct object *ancestor = o;
     
     while(ancestor) {
@@ -101,8 +100,8 @@ struct object *object_set(
             break;
         }
 
-        result = base_map_get(ancestor->value_structure, key);
-        if(result) {
+        struct object *entry = base_map_get(ancestor->value_structure, key);
+        if(entry) {
             base_map_set(ancestor->value_structure, key, value);
             // return null object
             return NULL;
@@ -119,14 +118,12 @@ struct object *object_get(
     struct object *o,
     const struct base_string *key
 ) {
-    struct object *result = NULL;
-    
     while(o) {
         if(o->kind != OBJECT_STRUCTURE) {
             // TODO error
             return NULL;
         }
-        result = base_map_get(o->value_structure, key);
+        struct object *result = base_map_get(o->value_structure, key);
         if(result) {
             return result;
         }
