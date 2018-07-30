@@ -1,20 +1,34 @@
 #include <malloc.h>
+#include <string.h>
 
 #include "base_map.h"
 
+#define MAX_KEY_LENGTH (32)
+
+static size_t base_map_hash(const char *key) {
+    size_t hash = 0;
+    size_t len = strlen(key);
+    for(size_t i=0; i<len; i++){
+        hash += (size_t)(key[i]);
+        hash *= 123457;
+    }
+    return hash;
+}
+
 struct base_map_entry {
-    struct base_string *key;
+    char key[MAX_KEY_LENGTH];
     struct object *value;
     struct base_map_entry *next;
 };
 
 static struct base_map_entry *base_map_entry_new(
-    const struct base_string *key,
+    const char *key,
     struct object *value,
     struct base_map_entry *next
 ) {
     struct base_map_entry *bme = calloc(1, sizeof *bme);
-    bme->key = base_string_copy(key);
+    strncpy(bme->key, key, MAX_KEY_LENGTH-1);
+    bme->key[MAX_KEY_LENGTH-1] = '\0';
     bme->value = value;
     bme->next = next;
     return bme;
@@ -27,7 +41,6 @@ static void base_map_entry_destroy(
 
     while(bme) {
         next = bme->next;
-        base_string_destroy(bme->key);
         free(bme);
         bme = next;
     }
@@ -76,18 +89,18 @@ static void base_map_rehash(struct base_map *bm) {
     free(old_buckets);
 }
 
-static struct base_map_entry *base_map_find(
+static struct base_map_entry **base_map_find(
     struct base_map *bm,
-    const struct base_string *key
+    const char *key
 ) {
-    size_t bucket_id = base_string_hash(key) % bm->bucket_count;
-    struct base_map_entry *entry = bm->buckets[bucket_id];
+    size_t bucket_id = base_map_hash(key) % bm->bucket_count;
+    struct base_map_entry **entry = &bm->buckets[bucket_id];
 
-    while(entry) {
-        if(base_string_equals(entry->key, key)) {
+    while(*entry) {
+        if(strcmp((*entry)->key, key) == 0) {
             return entry;
         }
-        entry = entry->next;
+        entry = &((*entry)->next);
     }
 
     return NULL;
@@ -95,17 +108,17 @@ static struct base_map_entry *base_map_find(
 
 void base_map_set(
     struct base_map *bm,
-    const struct base_string *key,
+    const char *key,
     struct object *value
 ) {
 
-    struct base_map_entry *found = base_map_find(bm,key);
-    if(found) {
-        found->value = value;
+    struct base_map_entry **found = base_map_find(bm, key);
+    if(*found) {
+        (*found)->value = value;
         return;
     }
 
-    size_t bucket_id = base_string_hash(key) % bm->bucket_count;
+    size_t bucket_id = base_map_hash(key) % bm->bucket_count;
     struct base_map_entry **bucket_head = bm->buckets + bucket_id;
     *bucket_head = base_map_entry_new(key, value, *bucket_head);
     bm->size++;
@@ -117,31 +130,25 @@ void base_map_set(
 
 struct object *base_map_get(
     struct base_map *bm,
-    const struct base_string *key
+    const char *key
 ) {
-    struct base_map_entry *found = base_map_find(bm,key);
+    struct base_map_entry **found = base_map_find(bm, key);
 
-    if(found) {
-        return found->value;
+    if(*found) {
+        return (*found)->value;
     }
     return NULL;
 }
 
 void base_map_remove(
     struct base_map* bm,
-    const struct base_string* key
+    const char *key
 ) {
-    size_t bucket_id = base_string_hash(key) % bm->bucket_count;
-    struct base_map_entry **entry = &bm->buckets[bucket_id];
-    
-    while(*entry) {
-        if(base_string_equals((*entry)->key, key)) {
-            struct base_map_entry *removed_entry = *entry;
-            *entry = (*entry)->next;
-            removed_entry->next = NULL;
-            base_map_entry_destroy(removed_entry);
-        }
-        entry = &(*entry)->next;
+    struct base_map_entry **found = base_map_find(bm, key);
+    if(*found) {
+        struct base_map_entry *next = (*found)->next;
+        base_map_entry_destroy(*found);
+        *found = next;
     }
 }
 
@@ -154,21 +161,21 @@ struct base_map_iterator {
     struct base_map *bm;
     size_t bucket_id;
     struct base_map_entry *entry;
-    const struct base_string **output_key;
+    const char **output_key;
     struct object **output_value;
 };
 
 struct base_map_iterator *base_map_iterator_new(
     struct base_map *bm,
-    const struct base_string **key,
-    struct object **value
+    const char *key,
+    struct object *value
 ) {
     struct base_map_iterator *bmi = calloc(1, sizeof *bmi);
     bmi->bm = bm;
     bmi->bucket_id = 0;
     bmi->entry = bm->buckets[0];
-    bmi->output_key = key;
-    bmi->output_value = value;
+    bmi->output_key = &key;
+    bmi->output_value = &value;
     return bmi;
 }
 

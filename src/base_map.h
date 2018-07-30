@@ -1,8 +1,8 @@
 #pragma once
 
 #include <stddef.h>
+#include <stdbool.h>
 
-#include "base_string.h"
 #include "type.h"
 
 struct base_map;
@@ -13,18 +13,18 @@ void base_map_destroy(struct base_map *bm);
 
 void base_map_set(
     struct base_map *bm,
-    const struct base_string *key,
+    const char *key,
     struct object *value
 );
 
 struct object *base_map_get(
     struct base_map *bm,
-    const struct base_string *key
+    const char *key
 );
 
 void base_map_remove(
     struct base_map *bm,
-    const struct base_string *key
+    const char *key
 );
 
 size_t base_map_size(
@@ -35,8 +35,8 @@ struct base_map_iterator;
 
 struct base_map_iterator *base_map_iterator_new(
     struct base_map *bm,
-    const struct base_string **key,
-    struct object **value
+    const char *key,
+    struct object *value
 );
 
 bool base_map_iterator_next(

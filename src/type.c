@@ -26,8 +26,11 @@ enum object_kind {
 typedef struct object*(*memberfunc_t)(struct object *o, const struct object *args);
 
 struct type {
+    const char *name;
     struct base_map *attributes;
     struct type *parent;
+    bool instantiated;
+    enum object_kind instance_kind;
 };
 
 struct object {
@@ -37,105 +40,185 @@ struct object {
         int value_integer;
         bool value_boolean; 
         double value_double;
-        struct base_string *value_string;
+        struct string*value_string;
         memberfunc_t value_function;
         struct base_map *value_structure;
     };
-    struct type *type;
-    struct object *parent;
+    const struct type *type;
 };
 
-static struct object *object_new_type(struct type *type) {
-    struct object *o = calloc(1, sizeof *o);
-    o->constant = true;
-    o->kind = OBJECT_TYPE;
+static struct object *object_new(
+    enum object_kind kind,
+    bool constant,
+    const struct type *type
+) {
+    struct object *o = malloc(sizeof *o);
+    o->kind = kind;
+    o->constant = constant;
     o->type = type;
-    o->parent = NULL;
-    return o;    
+    return o;
 }
 
-static struct object *object_new_function(memberfunc_t func) {
-    struct object *o = calloc(1, sizeof *o);
-    o->constant = true;
-    o->kind = OBJECT_FUNCTION;
-    o->type = NULL; // TODO create function type
+static struct object *object_new_function(
+    memberfunc_t func,
+    bool constant
+) {
+    const struct type *func_type = type_registry_get_type("func");
+    
+    if(!func_type) {
+        // TODO return error
+        return NULL;
+    }
+    
+    struct object *o = object_new(OBJECT_FUNCTION, constant, func_type);
     o->value_function = func;
-    o->parent = NULL;
-    return o;    
+    return o;
 }
 
-static struct type *type_new(struct type *parent) {
+static struct type_registry *registry;
+
+static struct type *type_new(
+    const char *type_name
+) {
     struct type *type = malloc(sizeof *type);
+    type->name = type_name;
+    type->instantiated = false;
     type->attributes = base_map_new();
-    type->parent = parent;
     return type;
 }
 
-static void type_add_memberfunc(struct type *type, const char *name, memberfunc_t func) {
-    struct base_string *key = base_string_new(name);
-    struct object *value = object_new_function(func);
-    base_map_set(type->attributes, key, value);
-    base_string_destroy(key);
+static void type_destroy(struct type *type) {
+    base_map_destroy(type->attributes);
+    free(type);
 }
 
-static struct object *base_memberfunc_not_implemented(
-    struct object *o,
-    const struct object *args
-) {
-    (void)o;
+static struct object *int_init(struct object *o, const struct object *args) {
     (void)args;
-    printf("this is not implemented!\n");
+    printf("int init was called!\n");
     return o;
+}
+
+static void type_registry_register_builtin_int(){
+    struct type *type = type_registry_create_type("int");
+    base_map_set(type->attributes, "_init", object_new_function(int_init, true));
+}
+
+static void type_registry_register_builtin_func(){
+    type_registry_create_type("func");
+}
+
+void type_registry_new(void) {
+
+    if(registry) {
+        return;
+    }
+
+    registry = calloc(1, sizeof *registry);
+    registry->types = base_map_new();
+
+    type_registry_register_builtin_func();
+    type_registry_register_builtin_int();
+}
+
+void type_registry_destroy(void) {
+    base_map_destroy(registry->types);
+    registry = NULL;
+}
+
+const struct type *type_registry_get_type(
+    const char *type_name
+) {
+    const struct object *o = base_map_get(registry->types, type_name);
+    if(o->kind != OBJECT_TYPE) {
+        return NULL;
+    }
+    return o->type;
+}
+
+struct type *type_registry_create_type(
+    const char *type_name
+) {
+    struct object *type = base_map_get(registry->types, type_name);
+    if(type) {
+        // TODO return error
+        return NULL;
+    }
+
+    struct type *new_type = type_new(type_name);
+    base_map_set(registry->types, type_name, type);
+    return new_type;
+}
+
+struct object *type_registry_instantiate(
+    const char *type_name
+) {
+    struct object *type_object = base_map_get(registry->types, type_name);
+    if(!type_object) {
+        // TODO return error
+        return NULL;
+    }
+    
+    if(type_object->kind != OBJECT_TYPE) {
+        // TODO return error
+        return NULL;
+    }
+    
+    const struct type *type = type_object->type;
+    type_object->constant = true;
+    
+    struct object *o = malloc(sizeof *o);
+    o->kind = type->instance_kind;
+    o->type = type;
+    
+    struct object *initializer = base_map_get(type->attributes, "_init");
+ 
+    if(!initializer) {
+        return o;
+    }
+    
+    if(initializer->kind != OBJECT_FUNCTION) {
+        // TODO return error
+        return NULL;
+    }
+    
+    return initializer->value_function(o, NULL);
 }
 
 struct object *object_set(
     struct object *o,
-    const struct base_string *key,
+    const char *key,
     struct object *value
 ) {
-    struct object *ancestor = o;
-    
-    while(ancestor) {
-        if(ancestor->kind != OBJECT_STRUCTURE) {
-            break;
-        }
-
-        struct object *entry = base_map_get(ancestor->value_structure, key);
-        if(entry) {
-            base_map_set(ancestor->value_structure, key, value);
-            // return null object
-            return NULL;
-        }
-        ancestor = ancestor->parent;
+    if(o->constant) {
+        // TODO return error
+        return NULL;
     }
-
+    
+    if(o->kind == OBJECT_TYPE) {
+        // TODO return error
+        return NULL;
+    }
+    
+    if(key[0] == '_') {
+        // TODO return error
+        return NULL;
+    }
+      
     base_map_set(o->value_structure, key, value);
-    // return null object
+    // TODO return null object
     return NULL;
 }
 
 struct object *object_get(
     struct object *o,
-    const struct base_string *key
+    const char *key
 ) {
-    while(o) {
-        if(o->kind != OBJECT_STRUCTURE) {
-            // TODO error
-            return NULL;
-        }
-        struct object *result = base_map_get(o->value_structure, key);
-        if(result) {
-            return result;
-        }
-        o = o->parent;
-    }
-    
-    return NULL;
+    return base_map_get(o->value_structure, key);
 }
 
 struct object *object_call(
     struct object *o,
-    const struct base_string *key,
+    const char *key,
     const struct object *args
 ) {
     struct object *func = object_get(o, key);
@@ -147,64 +230,5 @@ struct object *object_call(
     }
 
     return func->value_function(o, args);
-}
-
-static struct type *type_base_new() {
-    struct type *base = type_new(NULL);
-    type_add_memberfunc(base, "_new", base_memberfunc_not_implemented);
-    return base;    
-}
-
-static struct type_registry *registry;
-
-void type_registry_new(void) {
-
-    if(registry) {
-        return;
-    }
-
-    registry = calloc(1, sizeof *registry);
-    registry->types = base_map_new();
-    
-    struct base_string *key = base_string_new("base");
-    struct object *value = object_new_type(type_base_new());
-    base_map_set(registry->types, key, value);
-    base_string_destroy(key);
-}
-
-void type_registry_destroy(void) {
-    base_map_destroy(registry->types);
-    registry = NULL;
-}
-
-const struct type *type_registry_get_type(
-    const struct base_string *type_name
-) {
-    const struct object *o = base_map_get(registry->types, type_name);
-    if(o->kind != OBJECT_TYPE) {
-        return NULL;
-    }
-    return o->type;
-}
-
-struct type *type_registry_create_type(
-    const struct base_string *type_name,
-    const struct base_string *parent_type_name
-) {
-    struct object *type = base_map_get(registry->types, type_name);
-    if(type) {
-        // TODO return error
-        return NULL;
-    }
-
-    struct object *parent = base_map_get(registry->types, parent_type_name);
-    if((!parent) || parent->kind != OBJECT_TYPE) {
-        // TODO return error
-        return NULL;
-    }
-
-    struct type *new_type = type_new(parent->type);
-    base_map_set(registry->types, type_name, type);
-    return new_type;
 }
 
