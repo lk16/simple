@@ -1,6 +1,7 @@
 #include "type.h"
 
 #include "base_map.h"
+#include "builtin_types.h"
 
 #include <malloc.h>
 #include <assert.h>
@@ -23,8 +24,6 @@ enum object_kind {
     OBJECT_STRUCTURE
 };
 
-typedef struct object*(*memberfunc_t)(struct object *o, const struct object *args);
-
 struct type {
     const char *name;
     struct base_map *attributes;
@@ -38,9 +37,9 @@ struct object {
     bool constant;
     union {
         int value_integer;
-        bool value_boolean; 
+        bool value_boolean;
         double value_double;
-        struct string*value_string;
+        struct string *value_string;
         memberfunc_t value_function;
         struct base_map *value_structure;
     };
@@ -59,18 +58,17 @@ static struct object *object_new(
     return o;
 }
 
-static struct object *object_new_function(
-    memberfunc_t func,
-    bool constant
+struct object *object_new_function(
+    memberfunc_t func
 ) {
     const struct type *func_type = type_registry_get_type("func");
-    
+
     if(!func_type) {
         // TODO return error
         return NULL;
     }
-    
-    struct object *o = object_new(OBJECT_FUNCTION, constant, func_type);
+
+    struct object *o = object_new(OBJECT_FUNCTION, true, func_type);
     o->value_function = func;
     return o;
 }
@@ -92,20 +90,15 @@ static void type_destroy(struct type *type) {
     free(type);
 }
 
-static struct object *int_init(struct object *o, const struct object *args) {
-    (void)args;
-    printf("int init was called!\n");
-    return o;
+void type_set_attribute(
+    struct type* type,
+    const char* key,
+    struct object* value
+) {
+    base_map_set(type->attributes, key, value);
 }
 
-static void type_registry_register_builtin_int(){
-    struct type *type = type_registry_create_type("int");
-    base_map_set(type->attributes, "_init", object_new_function(int_init, true));
-}
 
-static void type_registry_register_builtin_func(){
-    type_registry_create_type("func");
-}
 
 void type_registry_new(void) {
 
@@ -115,9 +108,7 @@ void type_registry_new(void) {
 
     registry = calloc(1, sizeof *registry);
     registry->types = base_map_new();
-
-    type_registry_register_builtin_func();
-    type_registry_register_builtin_int();
+    register_builtin_types();
 }
 
 void type_registry_destroy(void) {
@@ -129,7 +120,14 @@ const struct type *type_registry_get_type(
     const char *type_name
 ) {
     const struct object *o = base_map_get(registry->types, type_name);
+    
+    if(!o) {
+        // TODO return error
+        return NULL;
+    }
+    
     if(o->kind != OBJECT_TYPE) {
+        // TODO return error
         return NULL;
     }
     return o->type;
@@ -157,34 +155,34 @@ struct object *type_registry_instantiate(
         // TODO return error
         return NULL;
     }
-    
+
     if(type_object->kind != OBJECT_TYPE) {
         // TODO return error
         return NULL;
     }
-    
+
     const struct type *type = type_object->type;
     type_object->constant = true;
-    
+
     struct object *o = malloc(sizeof *o);
     o->kind = type->instance_kind;
     o->type = type;
-    
+
     struct object *initializer = base_map_get(type->attributes, "_init");
- 
+
     if(!initializer) {
         return o;
     }
-    
+
     if(initializer->kind != OBJECT_FUNCTION) {
         // TODO return error
         return NULL;
     }
-    
+
     return initializer->value_function(o, NULL);
 }
 
-struct object *object_set(
+struct object *object_set_attribute(
     struct object *o,
     const char *key,
     struct object *value
@@ -193,26 +191,31 @@ struct object *object_set(
         // TODO return error
         return NULL;
     }
-    
+
     if(o->kind == OBJECT_TYPE) {
         // TODO return error
         return NULL;
     }
-    
+
     if(key[0] == '_') {
         // TODO return error
         return NULL;
     }
-      
+
     base_map_set(o->value_structure, key, value);
     // TODO return null object
     return NULL;
 }
 
-struct object *object_get(
+struct object *object_get_attribute(
     struct object *o,
     const char *key
 ) {
+    if(!o) {
+        // TODO return error
+        return NULL;
+    }
+    
     return base_map_get(o->value_structure, key);
 }
 
@@ -221,10 +224,23 @@ struct object *object_call(
     const char *key,
     const struct object *args
 ) {
-    struct object *func = object_get(o, key);
     
-    // TODO if not found return type_call()
+    if(!o) {
+        // TODO return error
+        return NULL;
+    }
     
+    struct object *func = object_get_attribute(o, key);
+
+    if(!func) {
+        
+        // TODO if not found return type_call()
+        
+        // TODO else return error
+        return NULL;
+    }
+    
+
     if(func->kind != OBJECT_FUNCTION) {
         return func;
     }
@@ -232,3 +248,61 @@ struct object *object_call(
     return func->value_function(o, args);
 }
 
+const struct object* object_get_const_attribute(
+    const struct object* o,
+    const char* key
+) {
+    return base_map_get_const(o->value_structure, key);
+}
+
+void object_get_double(
+    const struct object *o,
+    bool *ok,
+    double *value
+) {
+    if(o->kind == OBJECT_DOUBLE) {
+        *value = o->value_double;
+        *ok = true;
+    } else {
+        *ok = false;
+    }
+}
+
+void object_get_int(
+    const struct object *o,
+    bool *ok,
+    int *value
+) {
+	if(o->kind == OBJECT_INTEGER) {
+		*value = o->value_integer;
+		*ok = true;
+	} else {
+		*ok = false;
+	}
+}
+
+void object_set_int(
+    struct object *o,
+    bool *ok,
+    int value
+) {
+	if(o->kind == OBJECT_INTEGER) {
+		o->value_integer = value;
+		*ok = true;
+	} else {
+		*ok = false;
+	}
+}
+
+void object_set_double(
+    struct object *o,
+    bool *ok,
+    double value
+) {
+	if(o->kind == OBJECT_DOUBLE) {
+		o->value_double = value;
+		*ok = true;
+	} else {
+		*ok = false;
+	}
+}

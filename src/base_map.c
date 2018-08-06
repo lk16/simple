@@ -113,7 +113,7 @@ void base_map_set(
 ) {
 
     struct base_map_entry **found = base_map_find(bm, key);
-    if(*found) {
+    if(found) {
         (*found)->value = value;
         return;
     }
@@ -134,11 +134,30 @@ struct object *base_map_get(
 ) {
     struct base_map_entry **found = base_map_find(bm, key);
 
-    if(*found) {
+    if(found) {
         return (*found)->value;
     }
     return NULL;
 }
+
+const struct object *base_map_get_const(
+    const struct base_map *bm,
+    const char *key
+) {
+    size_t bucket_id = base_map_hash(key) % bm->bucket_count;
+    const struct base_map_entry *entry = bm->buckets[bucket_id];
+    
+    while(entry) {
+        
+        if(strcmp(entry->key, key) == 0) {
+            return entry->value;
+        }
+        entry = entry->next;
+    }
+
+    return NULL;
+}
+
 
 void base_map_remove(
     struct base_map* bm,
@@ -165,7 +184,7 @@ struct base_map_iterator {
     struct object **output_value;
 };
 
-struct base_map_iterator *base_map_iterator_new(
+struct base_map_iterator *base_map_iterate(
     struct base_map *bm,
     const char *key,
     struct object *value
