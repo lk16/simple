@@ -3,7 +3,7 @@
 #include <assert.h>
 
 #include "builtin_types.h"
-#include "base_map.h"
+#include "simple_types.h"
 #include "type.h"
 
 static struct object *int_assign(struct object *o, const struct object *args)

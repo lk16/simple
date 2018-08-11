@@ -1,6 +1,6 @@
 #include "type.h"
 
-#include "base_map.h"
+#include "simple_types.h"
 #include "builtin_types.h"
 
 #include <assert.h>
