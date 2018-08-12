@@ -6,74 +6,108 @@
 #include "simple_types.h"
 #include "type.h"
 
-static struct object *int_assign(struct object *o, const struct object *args)
-{
-
+static struct simple_error *int_assign(
+    struct object *o,
+    const struct object *args,
+    struct object **result
+) {
     printf("int assign was called!\n");
 
-    bool ok;
     int value;
-    object_get_int(args, &ok, &value);
+    struct simple_error *child_error = object_get_int(args, &value);
 
-    if (!ok) {
-        // TODO return error
-        return NULL;
+    if (child_error) {
+        struct simple_error *error = simple_error_new(__FILE__, __LINE__,
+            __FUNCTION__, "%s", "Getting int value failed.");
+        simple_error_set_child(error, child_error);
+        *result = NULL;
+        return error;
     }
 
-    object_set_int(o, &ok, value);
+    child_error = object_set_int(o, value);
 
-    if (!ok) {
-        // TODO return error
-        return NULL;
+    if (child_error) {
+        struct simple_error *error = simple_error_new(__FILE__, __LINE__,
+            __FUNCTION__, "%s", "Setting int value failed.");
+        simple_error_set_child(error, child_error);
+        *result = NULL;
+        return error;
     }
 
-    return o;
+    *result = o;
+    return NULL;
 }
 
-static struct object *int_init(struct object *o, const struct object *args)
-{
-
+static struct simple_error *int_init(
+    struct object *o,
+    const struct object *args,
+    struct object **result
+) {
     printf("int init was called!\n");
 
+    struct simple_error *child_error;
     if (args) {
-        o = int_assign(o, args);
+        child_error = int_assign(o, args, result);
     } else {
-        bool ok;
-        object_set_int(o, &ok, 0);
+        child_error = object_set_int(o, 0);
     }
 
-    return o;
+    if (child_error) {
+        struct simple_error *error = simple_error_new(__FILE__, __LINE__,
+            __FUNCTION__, "%s", "Assigning int failed.");
+        simple_error_set_child(error, child_error);
+        *result = NULL;
+        return error;
+    }
+
+    return NULL;
 }
 
-static struct object *int_print(struct object *o, const struct object *args)
-{
+static struct simple_error *int_print(
+    struct object *o,
+    const struct object *args,
+    struct object **result
+) {
+    (void)args;
 
     printf("int init was called!\n");
 
-    (void)args;
     int value;
-    bool ok;
+    struct simple_error *child_error = object_get_int(o, &value);
 
-    object_get_int(o, &ok, &value);
-
-    if (!ok) {
-        // TODO return error
-        return NULL;
+    if (child_error) {
+        struct simple_error *error = simple_error_new(__FILE__, __LINE__,
+            __FUNCTION__, "%s", "Getting int value faild.");
+        simple_error_set_child(error, child_error);
+        *result = NULL;
+        return error;
     }
 
     printf("%d\n", value);
 
-    return o;
+    *result = NULL;
+    return NULL;
 }
 
-void register_builtin_types()
-{
+void register_builtin_types(
+    void
+) {
 
-    struct type *int_type = type_registry_create_type("int");
+    struct simple_error *error;
+    struct type *int_type, *func_type;
+
+    error = type_registry_create_type("int", &int_type);
+    if (error) {
+        simple_error_show(error, stderr);
+        simple_error_destroy(error);
+    }
     type_set_attribute(int_type, "_init", object_new_function(int_init));
     type_set_attribute(int_type, "_assign", object_new_function(int_assign));
     type_set_attribute(int_type, "_print", object_new_function(int_print));
 
-    type_registry_create_type("func");
-
+    error = type_registry_create_type("func", &func_type);
+    if (error) {
+        simple_error_show(error, stderr);
+        simple_error_destroy(error);
+    }
 }

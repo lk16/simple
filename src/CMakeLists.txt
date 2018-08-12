@@ -17,6 +17,7 @@ set(CMAKE_C_FLAGS
 )
 
 ADD_EXECUTABLE(simple
+    builtin_types.c
     main.c
     simple_types.c
     type.c
