@@ -5,7 +5,7 @@ project(simple)
 find_package(PkgConfig)
 
 set(FLAGS
-" -std=c11 -I .. -pthread -Weverything -Wno-padded -fcolor-diagnostics"
+" -std=c11 -I .. -pthread -Weverything -Wno-padded -Wno-format-nonliteral -fcolor-diagnostics"
 )
 
 set(DEBUG_FLAGS "${FLAGS} -g")
@@ -16,5 +16,8 @@ set(CMAKE_C_FLAGS
   ${DEBUG_FLAGS}
 )
 
-FILE(GLOB SRCFILES *.c)
-ADD_EXECUTABLE(simple main.c simple_types.c)
+ADD_EXECUTABLE(simple
+    main.c
+    simple_types.c
+    type.c
+)
