@@ -9,6 +9,7 @@
 
 struct type_registry {
     struct simple_hashtable *types;
+    struct type *string_type;
 };
 
 enum object_kind {
@@ -91,7 +92,6 @@ static struct object *object_new_type(
     return o;
 }
 
-
 struct object *object_new_function(
     memberfunc_t func
 ) {
@@ -122,8 +122,8 @@ struct simple_error *type_set_attribute(
     struct object *value
 ) {
     struct object *key_object = object_new_string("%s", key);
-    struct simple_error *error = simple_hashtable_upsert(type->attributes,
-        key_object, value, NULL);
+    struct simple_error *error = simple_hashtable_insert(type->attributes,
+        key_object, value);
     object_destroy(key_object);
     return error;
 }
@@ -131,36 +131,84 @@ struct simple_error *type_set_attribute(
 void type_registry_new(
     void
 ) {
-
     if (registry) {
         return;
     }
 
-    struct object *string_type = object_new_type("string", OBJECT_STRING);
-    struct object *string_string = object_new_string("%s", "string");
+    struct simple_string *object_string = simple_string_new("object");
+    struct type *object_type = calloc(1, sizeof *object_type);
 
-    struct object *type_type = object_new_type("type", OBJECT_TYPE);
-    struct object *type_string = object_new_string("%s", "type");
+    *object_type = (struct type) {
+        .name = object_string,
+        .attributes = NULL,
+        .instantiated = true,
+        .instance_kind = OBJECT_STRING
+    };
 
     registry = calloc(1, sizeof *registry);
-    registry->types = simple_hashtable_new(string_type->value_type,
-        type_type->value_type);
+    registry->types = simple_hashtable_new(object_type, object_type);
+    registry->string_type = calloc(1, sizeof *registry->string_type);
 
-    simple_hashtable_insert(registry->types, string_string, string_type);
-    simple_hashtable_insert(registry->types, type_string, type_type);
-    register_builtin_types();
+    *registry->string_type = (struct type) {
+        .name = simple_string_new("string"),
+        .attributes = NULL,
+        .instantiated = true,
+        .instance_kind = OBJECT_STRING
+    };
+
+    struct object *type_string;
+    struct object *type_type;
+    struct type *type_type_value;
+
+    type_string = calloc(1, sizeof *type_string);
+    type_type = calloc(1, sizeof *type_type);
+    type_type_value = calloc(1, sizeof *type_type_value);
+
+    *type_string = (struct object) {
+        .kind = OBJECT_STRING,
+        .constant = true,
+        .value_string = simple_string_new("type"),
+        .type = object_type
+    };
+
+    *type_type_value = (struct type) {
+        .name = type_string->value_string,
+        .attributes = NULL,
+        .instantiated = true,
+        .instance_kind = OBJECT_TYPE
+    };
+
+    *type_type = (struct object) {
+        .kind = OBJECT_TYPE,
+        .constant = true,
+        .value_type = type_type_value,
+        .type = object_type
+    };
+
+    struct simple_error *error;
+    error = simple_hashtable_insert(registry->types, type_string, type_type);
+    simple_error_show(error, stdout);
+
+    // TODO register_builtin_types();
 }
 
 void type_registry_destroy(
     void
 ) {
     simple_hashtable_destroy(registry->types);
+    free(registry->types);
+    free(registry->string_type);
+    free(registry);
     registry = NULL;
 }
 
 const struct type *type_registry_get_type(
     const char *type_name
 ) {
+    if (strcmp(type_name, "string")) {
+        return registry->string_type;
+    }
+
     const struct object *o;
     struct object *type_name_object = object_new_string("%s", type_name);
     simple_hashtable_find_const(registry->types, type_name_object, &o);
@@ -188,7 +236,11 @@ struct simple_error *type_registry_create_type(
     if(strcmp(type_name, "bool") == 0) { instance_kind = OBJECT_BOOL; }
     else if(strcmp(type_name, "int") == 0) { instance_kind = OBJECT_INTEGER; }
     else if(strcmp(type_name, "double") == 0) { instance_kind = OBJECT_DOUBLE; }
-    else if(strcmp(type_name, "string") == 0) { instance_kind = OBJECT_STRING; }
+    else if(strcmp(type_name, "string") == 0) {
+        *result = NULL;
+        return simple_error_new(__FILE__, __LINE__, __FUNCTION__,
+            "%s", "Cannot override type 'string'");
+    }
     else if(strcmp(type_name, "vector") == 0) { instance_kind = OBJECT_VECTOR; }
     else if(strcmp(type_name, "map") == 0) { instance_kind = OBJECT_MAP; }
     else if(strcmp(type_name, "func") == 0) { instance_kind = OBJECT_FUNCTION; }
@@ -280,7 +332,7 @@ struct simple_error *object_set_attribute(
     }
 
     struct object *key_object = object_new_string("%s", key);
-    simple_hashtable_upsert(o->value_structure, key_object, value, NULL);
+    simple_hashtable_insert(o->value_structure, key_object, value);
     return NULL;
 }
 
@@ -363,6 +415,19 @@ struct simple_error *object_get_int(
     return NULL;
 }
 
+struct simple_error *object_get_string(
+    const struct object *o,
+    const struct simple_string **result
+) {
+    if(o->kind != OBJECT_STRING) {
+        *result = 0;
+        return simple_error_new(__FILE__, __LINE__, __FUNCTION__, "%s",
+            "Object is not a string.");
+    }
+    *result = o->value_string;
+    return NULL;
+}
+
 struct simple_error *object_get_double(
     const struct object *o,
     double *result
@@ -404,16 +469,15 @@ struct object *object_new_string(
     const char *format,
     ...
 ) {
-    const struct type *string_type = type_registry_get_type("string");
-    struct object *o = object_new(OBJECT_STRING, true, string_type);
+    struct object *o = object_new(OBJECT_STRING, true, registry->string_type);
 
     char *buff = NULL;
     va_list args, args2;
     va_start(args, format);
-    size_t length = (size_t)vsnprintf(buff, 0, format, args);
+    size_t length = (size_t)vsnprintf(buff, 0, format, args) + 1;
     va_end (args);
 
-    buff = calloc(length + 1, sizeof *buff);
+    buff = calloc(length, sizeof *buff);
 
     va_start(args2, format);
     vsnprintf(buff, length, format, args2);
@@ -429,17 +493,23 @@ struct object *object_copy(
     switch(o->kind) {
         case OBJECT_BOOL:
         case OBJECT_INTEGER:
+        case OBJECT_TYPE:
         case OBJECT_DOUBLE: {
             struct object *copy = calloc(1, sizeof *copy);
             memcpy(copy, o, sizeof *copy);
             copy->constant = false;
             return copy;
         }
-        case OBJECT_STRING:
+        case OBJECT_STRING: {
+            struct object *copy = calloc(1, sizeof *copy);
+            memcpy(copy, o, sizeof *copy);
+            copy->value_string = simple_string_copy(o->value_string);
+            copy->constant = false;
+            return copy;
+        }
         case OBJECT_VECTOR:
         case OBJECT_MAP:
         case OBJECT_FUNCTION:
-        case OBJECT_TYPE:
         case OBJECT_STRUCTURE: {
             printf("Copying for this object_kind is not implemented\n");
             return NULL;

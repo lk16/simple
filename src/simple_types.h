@@ -36,6 +36,10 @@ struct simple_string *simple_string_new(
     const char *cstring
 );
 
+struct simple_string *simple_string_copy(
+    const struct simple_string *string
+);
+
 void simple_string_destroy(
     struct simple_string *string
 );
@@ -85,19 +89,6 @@ struct simple_error *simple_hashtable_insert(
     struct simple_hashtable *table,
     const struct object *key,
     const struct object *value
-);
-
-struct simple_error *simple_hashtable_update(
-    struct simple_hashtable *table,
-    const struct object *key,
-    const struct object *value
-);
-
-struct simple_error *simple_hashtable_upsert(
-    struct simple_hashtable *table,
-    const struct object *key,
-    const struct object *value,
-    bool *inserted
 );
 
 struct simple_error *simple_hashtable_erase(

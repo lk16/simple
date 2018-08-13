@@ -89,6 +89,11 @@ struct simple_error *object_get_double(
     double *result
 );
 
+struct simple_error *object_get_string(
+    const struct object *o,
+    const struct simple_string **result
+);
+
 struct simple_error *object_set_int(
     struct object *o,
     int value
