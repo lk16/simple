@@ -181,8 +181,12 @@ void type_registry_new(
         string_type_object);
 
     registry->bootstrap = false;
+
     type_registry_create_type("object", &registry->object_type);
-    printf("%zu\n", simple_hashtable_size(registry->types));
+
+    struct type *func_type;
+    type_registry_create_type("func", &func_type);
+
     register_builtin_types();
 }
 
@@ -499,6 +503,7 @@ struct object *object_copy(
         case OBJECT_BOOL:
         case OBJECT_INTEGER:
         case OBJECT_TYPE:
+        case OBJECT_FUNCTION:
         case OBJECT_DOUBLE: {
             struct object *copy = calloc(1, sizeof *copy);
             memcpy(copy, o, sizeof *copy);
@@ -514,7 +519,6 @@ struct object *object_copy(
         }
         case OBJECT_VECTOR:
         case OBJECT_MAP:
-        case OBJECT_FUNCTION:
         case OBJECT_STRUCTURE: {
             printf("Copying for this object_kind is not implemented\n");
             return NULL;
