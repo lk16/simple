@@ -9,7 +9,8 @@
 
 struct type_registry {
     struct simple_hashtable *types;
-    struct type *string_type;
+    bool bootstrap;
+    struct type *string_type, *type_type, *object_type;
 };
 
 enum object_kind {
@@ -83,12 +84,13 @@ static struct object *object_new_type(
 ) {
     const struct type *type_type = type_registry_get_type("type");
     struct object *o = object_new(OBJECT_TYPE, false, type_type);
-    o->value_type->name = simple_string_new(type_name);
-    const struct type *string_type = type_registry_get_type("string");
-    const struct type *object_type = type_registry_get_type("object");
-    o->value_type->attributes = simple_hashtable_new(string_type, object_type);
-    o->value_type->instance_kind = instance_kind;
-    o->value_type->instantiated = false;
+    o->value_type = calloc(1, sizeof *o->value_type);
+    *o->value_type = (struct type) {
+        .name = simple_string_new(type_name),
+        .attributes = NULL,
+        .instance_kind = instance_kind,
+        .instantiated = false
+    };
     return o;
 }
 
@@ -122,6 +124,11 @@ struct simple_error *type_set_attribute(
     struct object *value
 ) {
     struct object *key_object = object_new_string("%s", key);
+    if (!type->attributes) {
+        type->attributes = simple_hashtable_new(registry->string_type,
+            registry->object_type);
+    }
+
     struct simple_error *error = simple_hashtable_insert(type->attributes,
         key_object, value);
     object_destroy(key_object);
@@ -135,19 +142,20 @@ void type_registry_new(
         return;
     }
 
-    struct simple_string *object_string = simple_string_new("object");
-    struct type *object_type = calloc(1, sizeof *object_type);
-
-    *object_type = (struct type) {
-        .name = object_string,
-        .attributes = NULL,
-        .instantiated = true,
-        .instance_kind = OBJECT_STRING
+    registry = calloc(1, sizeof *registry);
+    *registry = (struct type_registry) {
+        .bootstrap = true,
+        .types = NULL,
+        .type_type = calloc(1, sizeof *registry->type_type),
+        .string_type = calloc(1, sizeof *registry->string_type)
     };
 
-    registry = calloc(1, sizeof *registry);
-    registry->types = simple_hashtable_new(object_type, object_type);
-    registry->string_type = calloc(1, sizeof *registry->string_type);
+    *registry->type_type = (struct type) {
+        .name = simple_string_new("type"),
+        .attributes = NULL,
+        .instantiated = true,
+        .instance_kind = OBJECT_TYPE
+    };
 
     *registry->string_type = (struct type) {
         .name = simple_string_new("string"),
@@ -156,40 +164,26 @@ void type_registry_new(
         .instance_kind = OBJECT_STRING
     };
 
-    struct object *type_string;
-    struct object *type_type;
-    struct type *type_type_value;
+    registry->types = simple_hashtable_new(registry->string_type,
+        registry->type_type);
 
-    type_string = calloc(1, sizeof *type_string);
-    type_type = calloc(1, sizeof *type_type);
-    type_type_value = calloc(1, sizeof *type_type_value);
+    struct object *string_string_object, *type_string_object;
+    type_string_object = object_new_string("%s", "type");
+    string_string_object = object_new_string("%s", "string");
 
-    *type_string = (struct object) {
-        .kind = OBJECT_STRING,
-        .constant = true,
-        .value_string = simple_string_new("type"),
-        .type = object_type
-    };
+    struct object *type_type_object, *string_type_object;
+    type_type_object = object_new(OBJECT_TYPE, true, registry->type_type);
+    string_type_object = object_new(OBJECT_TYPE, true, registry->string_type);
 
-    *type_type_value = (struct type) {
-        .name = type_string->value_string,
-        .attributes = NULL,
-        .instantiated = true,
-        .instance_kind = OBJECT_TYPE
-    };
+    simple_hashtable_insert(registry->types, type_string_object,
+        type_type_object);
+    simple_hashtable_insert(registry->types, string_string_object,
+        string_type_object);
 
-    *type_type = (struct object) {
-        .kind = OBJECT_TYPE,
-        .constant = true,
-        .value_type = type_type_value,
-        .type = object_type
-    };
-
-    struct simple_error *error;
-    error = simple_hashtable_insert(registry->types, type_string, type_type);
-    simple_error_show(error, stdout);
-
-    // TODO register_builtin_types();
+    registry->bootstrap = false;
+    type_registry_create_type("object", &registry->object_type);
+    printf("%zu\n", simple_hashtable_size(registry->types));
+    register_builtin_types();
 }
 
 void type_registry_destroy(
@@ -197,7 +191,6 @@ void type_registry_destroy(
 ) {
     simple_hashtable_destroy(registry->types);
     free(registry->types);
-    free(registry->string_type);
     free(registry);
     registry = NULL;
 }
@@ -205,8 +198,15 @@ void type_registry_destroy(
 const struct type *type_registry_get_type(
     const char *type_name
 ) {
-    if (strcmp(type_name, "string")) {
-        return registry->string_type;
+    if (registry->bootstrap) {
+        if (strcmp(type_name, "string") == 0) {
+            return registry->string_type;
+        }
+        if (strcmp(type_name, "type") == 0) {
+            return registry->type_type;
+        }
+        // TODO return error
+        return NULL;
     }
 
     const struct object *o;
@@ -329,6 +329,11 @@ struct simple_error *object_set_attribute(
     if (key[0] == '_') {
         return simple_error_new(__FILE__, __LINE__, __FUNCTION__, "%s",
             "Cannot set attribute starting with '_'.");
+    }
+
+    if (!o->value_structure) {
+        o->value_structure = simple_hashtable_new(registry->string_type,
+            registry->object_type);
     }
 
     struct object *key_object = object_new_string("%s", key);

@@ -336,6 +336,7 @@ struct simple_error *simple_hashtable_insert(
         struct simple_hashtable_entry **bucket_head;
         bucket_head = table->buckets + bucket_id;
         *bucket_head = simple_hashtable_entry_new(key, value, *bucket_head);
+        table->size++;
     }
 
     if(simple_hashtable_load_factor(table) > 0.75) {
@@ -367,6 +368,7 @@ struct simple_error *simple_hashtable_erase(
         if(object_equals((*entry)->key, key)) {
             *entry = (*entry)->next;
             *erased = true;
+            table->size--;
             return NULL;
         }
         entry = &((*entry)->next);
