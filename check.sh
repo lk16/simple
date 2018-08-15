@@ -16,6 +16,7 @@ declare -a patterns=(
     '\S\s+$'
     '\s(if|switch|for|while)\('
     'do\('
+    'todo'
 )
 
 {

@@ -77,7 +77,7 @@ static struct simple_error *int_print(
 
     if (child_error) {
         struct simple_error *error = simple_error_new(__FILE__, __LINE__,
-            __FUNCTION__, "%s", "Getting int value faild.");
+            __FUNCTION__, "%s", "Getting int value failed.");
         simple_error_set_child(error, child_error);
         *result = NULL;
         return error;
@@ -95,17 +95,21 @@ void register_builtin_types(
 
     struct simple_error *error;
     struct type *int_type, *func_type;
+    struct object *function = NULL;
 
     error = type_registry_create_type("int", &int_type);
-    if (error) {
-        simple_error_show(error, stderr);
-        simple_error_destroy(error);
-    }
-    type_set_attribute(int_type, "_init", object_new_function(int_init));
-    type_set_attribute(int_type, "_assign", object_new_function(int_assign));
-    type_set_attribute(int_type, "_print", object_new_function(int_print));
 
-    error = type_registry_create_type("func", &func_type);
+    (error = object_new_function(int_init, &function)) ||
+    (error = type_set_attribute(int_type, "_init", function)) ||
+
+    (error = object_new_function(int_assign, &function)) ||
+    (error = type_set_attribute(int_type, "_assign", function)) ||
+
+    (error = object_new_function(int_print, &function)) ||
+    (error = type_set_attribute(int_type, "_print", function)) ||
+
+    (error = type_registry_create_type("func", &func_type));
+
     if (error) {
         simple_error_show(error, stderr);
         simple_error_destroy(error);

@@ -2,8 +2,7 @@
 
 #include "simple_types.h"
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
     type_registry_new();
@@ -12,7 +11,7 @@ int main(int argc, char **argv)
     struct simple_error *error;
     const struct simple_string *string;
 
-    o = object_new_string("%s, %s!\n", "Hello", "world");
+    object_new_string(&o, "%s, %s!\n", "Hello", "world");
     error = object_get_string(o, &string);
     simple_error_show(error, stdout);
     printf("%s", simple_string_get(string));

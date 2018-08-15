@@ -38,25 +38,30 @@ struct simple_error *type_set_attribute(
     struct object *value
 ) __attribute__((warn_unused_result));
 
-struct object *object_new_int(
-    int value
+struct simple_error *object_new_int(
+    int value,
+    struct object **result
 ) __attribute__((warn_unused_result));
 
-struct object *object_new_double(
-    float value
+struct simple_error *object_new_double(
+    double value,
+    struct object **result
 ) __attribute__((warn_unused_result));
 
-struct object *object_new_function(
-    memberfunc_t value
+struct simple_error *object_new_function(
+    memberfunc_t value,
+    struct object **result
 ) __attribute__((warn_unused_result));
 
-struct object *object_new_string(
+struct simple_error *object_new_string(
+    struct object **result,
     const char *format,
     ...
 ) __attribute__((warn_unused_result));
 
-struct object *object_copy(
-    const struct object *o
+struct simple_error *object_copy(
+    const struct object *o,
+    struct object **copy
 ) __attribute__((warn_unused_result));
 
 void object_destroy(struct object *o);
@@ -74,9 +79,10 @@ size_t object_get_hash(
     const struct object *o
 );
 
-bool object_equals(
+struct simple_error *object_equals(
     const struct object *lhs,
-    const struct object *rhs
+    const struct object *rhs,
+    bool *result
 );
 
 struct simple_error *object_get_int(
