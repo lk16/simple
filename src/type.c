@@ -1,6 +1,8 @@
 #include "type.h"
 
-#include "simple_types.h"
+#include "simple_error.h"
+#include "simple_hashtable.h"
+#include "simple_string.h"
 #include "builtin_types.h"
 
 #include <assert.h>

@@ -21,6 +21,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 ADD_EXECUTABLE(simple
     builtin_types.c
     main.c
-    simple_types.c
+    simple_hashtable.c
+    simple_error.c
+    simple_string.c
     type.c
 )

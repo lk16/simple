@@ -1,9 +1,10 @@
+#include "builtin_types.h"
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <assert.h>
 
-#include "builtin_types.h"
-#include "simple_types.h"
+#include "simple_error.h"
 #include "type.h"
 
 static struct simple_error *int_assign(
