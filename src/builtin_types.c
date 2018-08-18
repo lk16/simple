@@ -14,25 +14,13 @@ static struct simple_error *int_assign(
     printf("int assign was called!\n");
 
     int value;
-    struct simple_error *child_error = object_get_int(args, &value);
+    struct simple_error *error;
 
-    if (child_error) {
-        struct simple_error *error = simple_error_new(__FILE__, __LINE__,
-            __FUNCTION__, "%s", "Getting int value failed.");
-        simple_error_set_child(error, child_error);
-        *result = NULL;
-        return error;
-    }
+    error = object_get_int(args, &value);
+    simple_error_forward(error, "%s", "Getting int value failed.");
 
-    child_error = object_set_int(o, value);
-
-    if (child_error) {
-        struct simple_error *error = simple_error_new(__FILE__, __LINE__,
-            __FUNCTION__, "%s", "Setting int value failed.");
-        simple_error_set_child(error, child_error);
-        *result = NULL;
-        return error;
-    }
+    error = object_set_int(o, value);
+    simple_error_forward(error, "%s", "Setting int value failed.")
 
     *result = o;
     return NULL;
@@ -45,20 +33,13 @@ static struct simple_error *int_init(
 ) {
     printf("int init was called!\n");
 
-    struct simple_error *child_error;
+    struct simple_error *error;
     if (args) {
-        child_error = int_assign(o, args, result);
+        error = int_assign(o, args, result);
     } else {
-        child_error = object_set_int(o, 0);
+        error = object_set_int(o, 0);
     }
-
-    if (child_error) {
-        struct simple_error *error = simple_error_new(__FILE__, __LINE__,
-            __FUNCTION__, "%s", "Assigning int failed.");
-        simple_error_set_child(error, child_error);
-        *result = NULL;
-        return error;
-    }
+    simple_error_forward(error, "%s", "Assigning int failed.");
 
     return NULL;
 }
@@ -73,15 +54,8 @@ static struct simple_error *int_print(
     printf("int init was called!\n");
 
     int value;
-    struct simple_error *child_error = object_get_int(o, &value);
-
-    if (child_error) {
-        struct simple_error *error = simple_error_new(__FILE__, __LINE__,
-            __FUNCTION__, "%s", "Getting int value failed.");
-        simple_error_set_child(error, child_error);
-        *result = NULL;
-        return error;
-    }
+    struct simple_error *error = object_get_int(o, &value);
+    simple_error_forward(error, "%s", "Getting int value failed.");
 
     printf("%d\n", value);
 
@@ -89,7 +63,7 @@ static struct simple_error *int_print(
     return NULL;
 }
 
-void register_builtin_types(
+struct simple_error *register_builtin_types(
     void
 ) {
 
@@ -98,20 +72,32 @@ void register_builtin_types(
     struct object *function = NULL;
 
     error = type_registry_create_type("int", &int_type);
+    simple_error_forward(error, "%s", "");
 
-    (error = object_new_function(int_init, &function)) ||
-    (error = type_set_attribute(int_type, "_init", function)) ||
+    error = object_new_function(int_init, &function);
+    simple_error_forward(error, "%s", "");
 
-    (error = object_new_function(int_assign, &function)) ||
-    (error = type_set_attribute(int_type, "_assign", function)) ||
+    error = type_set_attribute(int_type, "_init", function);
+    simple_error_forward(error, "%s", "");
 
-    (error = object_new_function(int_print, &function)) ||
-    (error = type_set_attribute(int_type, "_print", function)) ||
+    error = object_new_function(int_assign, &function);
+    simple_error_forward(error, "%s", "");
 
-    (error = type_registry_create_type("func", &func_type));
+    error = type_set_attribute(int_type, "_assign", function);
+    simple_error_forward(error, "%s", "");
+
+    error = object_new_function(int_print, &function);
+    simple_error_forward(error, "%s", "");
+
+    error = type_set_attribute(int_type, "_print", function);
+    simple_error_forward(error, "%s", "");
+
+    error = type_registry_create_type("func", &func_type);
+    simple_error_forward(error, "%s", "");
 
     if (error) {
         simple_error_show(error, stderr);
         simple_error_destroy(error);
     }
+    return NULL;
 }

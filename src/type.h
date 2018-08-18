@@ -14,12 +14,17 @@ typedef struct simple_error *(*memberfunc_t)(
     struct object **result
 );
 
-void type_registry_new(void);
+struct simple_error *type_registry_new(
+    void
+) __attribute__((warn_unused_result));
 
-void type_registry_destroy(void);
+struct simple_error *type_registry_destroy(
+    void
+) __attribute__((warn_unused_result));
 
-const struct type *type_registry_get_type(
-    const char *type_name
+struct simple_error *type_registry_get_type(
+    const char *type_name,
+    const struct type **result
 ) __attribute__((warn_unused_result));
 
 struct simple_error *type_registry_create_type(

@@ -13,6 +13,8 @@ struct type_registry {
     struct type *string_type, *type_type, *object_type;
 };
 
+static struct type_registry *registry;
+
 enum object_kind {
     OBJECT_BOOL,
     OBJECT_INTEGER,
@@ -78,41 +80,41 @@ static struct object *object_new(
     return o;
 }
 
-static struct object *object_new_type(
+static struct simple_error *object_new_type(
     const char *type_name,
-    enum object_kind instance_kind
+    enum object_kind instance_kind,
+    struct object **result
 ) {
-    const struct type *type_type = type_registry_get_type("type");
+    struct simple_error *error;
+    const struct type *type_type;
+
+    error = type_registry_get_type("type", &type_type);
+    simple_error_forward(error, "%s", "");
+
     struct object *o = object_new(OBJECT_TYPE, false, type_type);
     o->value_type = calloc(1, sizeof *o->value_type);
     *o->value_type = (struct type) {
         .name = simple_string_new(type_name),
-        .attributes = NULL,
+        .attributes = simple_hashtable_new(registry->string_type,
+            registry->type_type),
         .instance_kind = instance_kind,
         .instantiated = false
     };
-    return o;
+
+    *result = o;
+    return NULL;
 }
 
 struct simple_error *object_new_function(
     memberfunc_t func,
     struct object **result
 ) {
-    struct simple_error *child_error = type_registry_construct("func", result);
-
-    if (child_error) {
-        struct simple_error *error = simple_error_new(__FILE__, __LINE__,
-            __FUNCTION__, "%s", "Failed to create func object");
-        simple_error_set_child(error, child_error);
-        *result = NULL;
-        return error;
-    }
+    struct simple_error *error = type_registry_construct("func", result);
+    simple_error_forward(error, "%s", "");
 
     (*result)->value_function = func;
     return NULL;
 }
-
-static struct type_registry *registry;
 
 static void type_destroy(
     struct type *type
@@ -127,32 +129,28 @@ struct simple_error *type_set_attribute(
     struct object *value
 ) {
     struct object *key_object;
-    struct simple_error *child_error;
-    child_error = object_new_string(&key_object, "%s", key);
-
-    if (child_error) {
-        struct simple_error *error = simple_error_new(__FILE__, __LINE__,
-            __FUNCTION__, "%s", "Could not create attribute key (string)");
-        simple_error_set_child(error, child_error);
-        return error;
-    }
+    struct simple_error *error;
+    error = object_new_string(&key_object, "%s", key);
+    simple_error_forward(error, "%s",
+        "Could not create attribute key (string)");
 
     if (!type->attributes) {
         type->attributes = simple_hashtable_new(registry->string_type,
             registry->object_type);
     }
 
-    struct simple_error *error = simple_hashtable_insert(type->attributes,
-        key_object, value);
+    error = simple_hashtable_insert(type->attributes, key_object, value);
+    simple_error_forward(error, "Setting attribute '%s' failed.", key);
+
     object_destroy(key_object);
-    return error;
+    return NULL;
 }
 
-void type_registry_new(
+struct simple_error *type_registry_new(
     void
 ) {
     if (registry) {
-        return;
+        return NULL;
     }
 
     registry = calloc(1, sizeof *registry);
@@ -181,75 +179,96 @@ void type_registry_new(
         registry->type_type);
 
     struct object *string_string_object, *type_string_object;
-    object_new_string(&type_string_object, "%s", "type");
-    object_new_string(&string_string_object, "%s", "string");
+    struct simple_error *error;
+
+    error = object_new_string(&type_string_object, "%s", "type");
+    simple_error_forward(error, "%s", "");
+
+    error = object_new_string(&string_string_object, "%s", "string");
+    simple_error_forward(error, "%s", "");
 
     struct object *type_type_object, *string_type_object;
     type_type_object = object_new(OBJECT_TYPE, true, registry->type_type);
     string_type_object = object_new(OBJECT_TYPE, true, registry->string_type);
 
-    simple_hashtable_insert(registry->types, type_string_object,
+    error = simple_hashtable_insert(registry->types, type_string_object,
         type_type_object);
-    simple_hashtable_insert(registry->types, string_string_object,
+    simple_error_forward(error, "%s", "");
+
+    error = simple_hashtable_insert(registry->types, string_string_object,
         string_type_object);
+    simple_error_forward(error, "%s", "");
 
     registry->bootstrap = false;
 
-    type_registry_create_type("object", &registry->object_type);
+    error = type_registry_create_type("object", &registry->object_type);
+    simple_error_forward(error, "%s", "");
 
     struct type *func_type;
-    type_registry_create_type("func", &func_type);
+    error = type_registry_create_type("func", &func_type);
+    simple_error_forward(error, "%s", "");
 
-    register_builtin_types();
+    error = register_builtin_types();
+    simple_error_forward(error, "%s", "");
+
+    return NULL;
 }
 
-void type_registry_destroy(
+struct simple_error *type_registry_destroy(
     void
 ) {
     simple_hashtable_destroy(registry->types);
     free(registry->types);
     free(registry);
     registry = NULL;
+    return NULL;
 }
 
-const struct type *type_registry_get_type(
-    const char *type_name
+struct simple_error *type_registry_get_type(
+    const char *type_name,
+    const struct type **result
 ) {
     if (registry->bootstrap) {
         if (strcmp(type_name, "string") == 0) {
-            return registry->string_type;
+            *result = registry->string_type;
+            return NULL;
         }
         if (strcmp(type_name, "type") == 0) {
-            return registry->type_type;
+            *result = registry->type_type;
+            return NULL;
         }
-        // TODO return error
-        return NULL;
+        *result = NULL;
+        return simple_error_new(
+            "Cannot get type '%s' when bootstrapping type system.", type_name);
     }
 
     const struct object *o;
     struct object *type_name_object;
-    object_new_string(&type_name_object, "%s", type_name);
-    simple_hashtable_find_const(registry->types, type_name_object, &o);
+    struct simple_error *error;
+
+    error = object_new_string(&type_name_object, "%s", type_name);
+    simple_error_forward(error, "%s", "");
+
+    error = simple_hashtable_find_const(registry->types, type_name_object, &o);
+    simple_error_forward(error, "%s", "");
 
     if (!o) {
-        // TODO return error
-        return NULL;
+        return simple_error_new("Type '%s' does not exist.", type_name);
     }
 
-    if (o->kind != OBJECT_TYPE) {
-        // TODO return error
-        return NULL;
-    }
-
-    return o->type;
+    *result = o->type;
+    return NULL;
 }
 
 struct simple_error *type_registry_create_type(
     const char *type_name,
     struct type **result
 ) {
+
+    struct simple_error *error;
     struct object *type_name_object;
-    object_new_string(&type_name_object, "%s", type_name);
+    error = object_new_string(&type_name_object, "%s", type_name);
+    simple_error_forward(error, "%s", "");
 
     enum object_kind instance_kind;
     if (strcmp(type_name, "bool") == 0) {
@@ -274,9 +293,14 @@ struct simple_error *type_registry_create_type(
         instance_kind = OBJECT_STRUCTURE;
     }
 
-    struct object *type_object = object_new_type(type_name, instance_kind);
-    struct simple_error *error = simple_hashtable_insert(registry->types,
-        type_name_object, type_object);
+    struct object *type_object;
+
+    error = object_new_type(type_name, instance_kind, &type_object);
+    simple_error_forward(error, "%s", "");
+
+    error = simple_hashtable_insert(registry->types, type_name_object,
+        type_object);
+    simple_error_forward(error, "%s", "");
 
     *result = type_object->value_type;
     return error;
@@ -294,8 +318,14 @@ struct simple_error *type_registry_construct(
     struct object **result
 ) {
     struct object *type_object, *type_name_object;
-    object_new_string(&type_name_object, "%s", type_name);
-    simple_hashtable_find(registry->types, type_name_object, &type_object);
+    struct simple_error *error;
+
+    error = object_new_string(&type_name_object, "%s", type_name);
+    simple_error_forward(error, "%s", "");
+
+    error = simple_hashtable_find(registry->types, type_name_object,
+        &type_object);
+    simple_error_forward(error, "%s", "");
 
     if (!type_object) {
         *result = NULL;
@@ -312,9 +342,13 @@ struct simple_error *type_registry_construct(
     o->kind = type->instance_kind;
 
     struct object *attribute_name;
-    object_new_string(&attribute_name, "%s", "_init");
+    error = object_new_string(&attribute_name, "%s", "_init");
+    simple_error_forward(error, "%s", "");
+
     struct object *initializer;
-    simple_hashtable_find(type->attributes, attribute_name, &initializer);
+    error = simple_hashtable_find(type->attributes, attribute_name,
+        &initializer);
+    simple_error_forward(error, "%s", "");
 
     if (!initializer) {
         *result = o;
@@ -322,22 +356,14 @@ struct simple_error *type_registry_construct(
     }
 
     struct object *init_return_value;
-    struct simple_error *child_error = object_call(o, "_init", NULL,
-        &init_return_value);
-
-    if (child_error) {
-        *result = NULL;
-        struct simple_error *error = simple_error_new(__FILE__, __LINE__,
-            __FUNCTION__, "Constructing instance of type '%s' failed.",
+    error = object_call(o, "_init", NULL, &init_return_value);
+    simple_error_forward(error, "Constructing instance of type '%s' failed.",
             type_name);
-        simple_error_set_child(error, child_error);
-        return error;
-    }
 
     if (init_return_value) {
         *result = NULL;
         return simple_error_new(__FILE__, __LINE__, __FUNCTION__,
-            "Attribute '_init' of type '%s' did not return NULL.", type_name);
+            "Attribute %s._init() did not return NULL.", type_name);
     }
 
     *result = o;
@@ -365,8 +391,13 @@ struct simple_error *object_set_attribute(
     }
 
     struct object *key_object;
-    object_new_string(&key_object, "%s", key);
-    simple_hashtable_insert(o->value_structure, key_object, value);
+    struct simple_error *error;
+    error = object_new_string(&key_object, "%s", key);
+    simple_error_forward(error, "%s", "");
+
+    error = simple_hashtable_insert(o->value_structure, key_object, value);
+    simple_error_forward(error, "%s", "");
+
     return NULL;
 }
 
@@ -382,8 +413,14 @@ struct simple_error *object_get_attribute(
     }
 
     struct object *key_object;
-    object_new_string(&key_object, "%s", key);
-    simple_hashtable_find(o->value_structure, key_object, result);
+    struct simple_error *error;
+
+    error = object_new_string(&key_object, "%s", key);
+    simple_error_forward(error, "%s", "");
+
+    error = simple_hashtable_find(o->value_structure, key_object, result);
+    simple_error_forward(error, "%s", "");
+
     return NULL;
 }
 
@@ -393,8 +430,14 @@ struct simple_error *object_get_attribute_const(
     const struct object **result
 ) {
     struct object *key_object;
-    object_new_string(&key_object, "%s", key);
-    simple_hashtable_find_const(o->value_structure, key_object, result);
+    struct simple_error *error;
+
+    error = object_new_string(&key_object, "%s", key);
+    simple_error_forward(error, "%s", "");
+
+    error = simple_hashtable_find_const(o->value_structure, key_object, result);
+    simple_error_forward(error, "%s", "");
+
     return NULL;
 }
 
@@ -424,16 +467,8 @@ struct simple_error *object_call(
             "Attribute '%s' is not a function.", key);
     }
 
-    struct simple_error *child_error = attribute->value_function(o, args,
-        result);
-
-    if (child_error) {
-        error = simple_error_new(__FILE__, __LINE__, __FUNCTION__,
-            "Error in function %s.%s()", o->type->name, key);
-        simple_error_set_child(error, child_error);
-        *result = NULL;
-        return error;
-    }
+    error = attribute->value_function(o, args, result);
+    simple_error_forward(error, "Error calling %s.%s()", o->type->name, key);
 
     return NULL;
 }
@@ -538,13 +573,13 @@ struct simple_error *object_copy(
         case OBJECT_FUNCTION:
         case OBJECT_DOUBLE: {
             *copy = calloc(1, sizeof **copy);
-            memcpy(copy, o, sizeof **copy);
+            memcpy(*copy, o, sizeof **copy);
             (*copy)->constant = false;
             return NULL;
         }
         case OBJECT_STRING: {
             *copy = calloc(1, sizeof **copy);
-            memcpy(copy, o, sizeof **copy);
+            memcpy(*copy, o, sizeof **copy);
             (*copy)->value_string = simple_string_copy(o->value_string);
             (*copy)->constant = false;
             return NULL;
@@ -552,6 +587,7 @@ struct simple_error *object_copy(
         case OBJECT_VECTOR:
         case OBJECT_MAP:
         case OBJECT_STRUCTURE: {
+            *copy = NULL;
             return simple_error_new(__FILE__, __LINE__, __FUNCTION__,
                 "object_copy() is not implemented for type '%s'.",
                 o->type->name);
