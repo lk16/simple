@@ -28,6 +28,9 @@ ADD_EXECUTABLE(simple
 )
 
 ADD_EXECUTABLE(test
-    simple_progressbar.c
-    simple_test.c
+    test/main.c
+)
+
+target_link_libraries(test
+    m
 )

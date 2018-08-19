@@ -1,11 +1,11 @@
 #include <string.h>
 #include <malloc.h>
+#include <stdlib.h>
+#include <math.h>
 
 #include "simple_test.h"
 
-struct simple_test_item *simple_test_root;
-
-
+static struct simple_test_item *simple_test_root;
 
 enum simple_test_item_kind{
     SIMPLE_TEST_INTERNAL,
@@ -37,6 +37,15 @@ static void simple_test_item_destroy(
 
     simple_test_item_destroy(item->next);
     free(item);
+}
+
+struct simple_test_item *simple_test_get_root(
+    void
+) {
+    if (!simple_test_root) {
+        fprintf(stderr, "%s", "simple_test is not initialized.\n");
+    }
+    return simple_test_root;
 }
 
 static size_t simple_test_item_count(
@@ -101,34 +110,49 @@ static size_t simple_test_get_full_name(
     return used;
 }
 
+static int count_digits(
+    size_t value
+) {
+    return (int)(floor(log10(value))) + 1;
+}
+
 static void simple_test_run_recursively(
-    struct simple_test_item *item
+    struct simple_test_item *item,
+    size_t *nodes_visited,
+    size_t node_count
 ) {
     if (!item) {
         return;
     }
 
+    (*nodes_visited)++;
+
     char buff[1024];
     simple_test_get_full_name(item, buff, 1024);
-    printf("\033[0;33mVisiting %s\033[0m\n", buff);
+    printf("\033[0;33m[ %*zu / %*zu ] Visiting %s\033[0m\n",
+        count_digits(node_count), *nodes_visited, count_digits(node_count),
+        node_count, buff);
 
     switch (item->kind) {
         case SIMPLE_TEST_INTERNAL:
-            simple_test_run_recursively(item->first_child);
+            simple_test_run_recursively(item->first_child, nodes_visited,
+                node_count);
             break;
         case SIMPLE_TEST_LEAF:
             item->func();
             break;
     }
 
-    simple_test_run_recursively(item->next);
+    simple_test_run_recursively(item->next, nodes_visited, node_count);
 }
 
 
 void simple_test_run(
     void
 ) {
-    simple_test_run_recursively(simple_test_root);
+    size_t nodes_visited = 0;
+    size_t node_count = simple_test_item_count(simple_test_root);
+    simple_test_run_recursively(simple_test_root, &nodes_visited, node_count);
 }
 
 void simple_test_destroy(
@@ -144,7 +168,7 @@ void simple_test_create_leaf(
     simple_test_func func
 ) {
     if (!parent) {
-        fprintf(stderr, "Cannot create leaf '%s' to null parent", name);
+        fprintf(stderr, "Cannot create leaf '%s' to null parent.\n", name);
         return;
     }
 
@@ -217,26 +241,4 @@ struct simple_error *some_test() {
 struct simple_error *some_other_test() {
     printf("%s\n", "some_other_test()");
     return NULL;
-}
-
-
-int main() {
-    simple_test_init();
-
-    struct simple_test_item *group, *subgroup;
-
-    group = simple_test_create_node(simple_test_root, "group");
-    simple_test_create_leaf(group, "test1", some_test);
-    simple_test_create_leaf(group, "test2", some_other_test);
-
-    subgroup = simple_test_create_node(group, "subgroup");
-    simple_test_create_leaf(subgroup, "test3", some_other_test);
-    simple_test_create_leaf(subgroup, "test4", some_test);
-
-    simple_test_create_leaf(simple_test_root, "test5", some_test);
-
-    simple_test_run();
-    simple_test_destroy();
-
-    return 0;
 }

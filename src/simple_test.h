@@ -3,8 +3,6 @@
 struct simple_error;
 struct simple_test_item;
 
-extern struct simple_test_item *simple_test_root;
-
 typedef struct simple_error*(*simple_test_func)(void);
 
 void simple_test_init(
@@ -16,6 +14,10 @@ void simple_test_run(
 );
 
 void simple_test_destroy(
+    void
+);
+
+struct simple_test_item *simple_test_get_root(
     void
 );
 
