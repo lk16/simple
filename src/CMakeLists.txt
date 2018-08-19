@@ -26,3 +26,8 @@ ADD_EXECUTABLE(simple
     simple_string.c
     type.c
 )
+
+ADD_EXECUTABLE(test
+    simple_progressbar.c
+    simple_test.c
+)
