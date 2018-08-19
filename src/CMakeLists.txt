@@ -1,36 +1,50 @@
-cmake_minimum_required(VERSION 2.8)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
-project(simple)
+PROJECT(simple)
 
-find_package(PkgConfig)
 
-set(FLAGS
+SET(FLAGS
     " -std=c11 -I .. -pthread -Wno-pedantic -Weverything -Wno-padded \
     -Wno-format-nonliteral -fcolor-diagnostics"
 )
 
-set(DEBUG_FLAGS "${FLAGS} -g")
-set(OPTMISING_FLAGS "${FLAGS} -O3 -fforce-addr -ftree-vectorize -funroll-loops")
+SET(DEBUG_FLAGS "${FLAGS} -g")
+SET(OPTMISING_FLAGS "${FLAGS} -O3 -fforce-addr -ftree-vectorize -funroll-loops")
 
-set(CMAKE_C_FLAGS
+SET(CMAKE_C_FLAGS
   #${OPTMISING_FLAGS}
   ${DEBUG_FLAGS}
 )
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-ADD_EXECUTABLE(simple
+ADD_LIBRARY(supersimple STATIC
     builtin_types.c
-    main.c
     simple_hashtable.c
     simple_error.c
     simple_string.c
+    simple_test.c
     type.c
 )
 
-ADD_EXECUTABLE(test
+ADD_EXECUTABLE(
+    simple
+    main.c
+)
+
+TARGET_LINK_LIBRARIES(
+    simple
+    m
+    supersimple
+)
+
+ADD_EXECUTABLE(
+    test_simple
     test/main.c
 )
 
-target_link_libraries(test
+TARGET_LINK_LIBRARIES(
+    test_simple
     m
+    supersimple
 )

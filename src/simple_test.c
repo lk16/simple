@@ -4,6 +4,7 @@
 #include <math.h>
 
 #include "simple_test.h"
+#include "simple_error.h"
 
 static struct simple_test_item *simple_test_root;
 
@@ -138,9 +139,14 @@ static void simple_test_run_recursively(
             simple_test_run_recursively(item->first_child, nodes_visited,
                 node_count);
             break;
-        case SIMPLE_TEST_LEAF:
-            item->func();
+        case SIMPLE_TEST_LEAF: {
+            struct simple_error *error = item->func();
+            if (error) {
+                simple_error_show(error, stderr);
+                simple_error_destroy(error);
+            }
             break;
+        }
     }
 
     simple_test_run_recursively(item->next, nodes_visited, node_count);
@@ -230,15 +236,4 @@ struct simple_test_item *simple_test_create_node(
     }
 
     return item;
-}
-
-
-struct simple_error *some_test() {
-    printf("%s\n", "some_test()");
-    return NULL;
-}
-
-struct simple_error *some_other_test() {
-    printf("%s\n", "some_other_test()");
-    return NULL;
 }
