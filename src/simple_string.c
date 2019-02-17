@@ -17,7 +17,7 @@ struct simple_string *simple_string_new(
 ) {
     struct simple_string *string = calloc(1, sizeof *string);
     string->length = strlen(cstring);
-    string->cstring = calloc(string->length + 1, sizeof *string->cstring);
+    string->cstring = calloc(string->length+ 1, sizeof *string->cstring);
     memcpy(string->cstring, cstring, string->length + 1);
     return string;
 }

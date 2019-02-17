@@ -6,14 +6,13 @@
     simple_error_new_full(NULL, __FILE__, __LINE__, __FUNCTION__, \
         format, __VA_ARGS__)
 
-#define simple_error_forward(cause, format, ...) \
-    { \
-        struct simple_error *_cause = (cause); \
-        if (_cause) { \
-            return simple_error_new_full(cause, __FILE__, __LINE__, \
-                __FUNCTION__, format, __VA_ARGS__); \
-        } \
-    }
+#define simple_error_check(error) \
+    if (error) { \
+        error = simple_error_new_full(error, __FILE__, __LINE__, \
+        __FUNCTION__, "%s", ""); \
+        goto cleanup; \
+    } \
+    (void)0
 
 struct simple_error;
 

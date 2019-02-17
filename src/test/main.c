@@ -3,22 +3,23 @@
 #include "../simple_hashtable.h"
 #include "../type.h"
 
+#include <malloc.h>
+
 static struct simple_error *test_hashtable_init(
     void
 ) {
     struct simple_error *error;
-    const struct type *string_type;
+    struct type *string_type;
     error = type_registry_get_type("string", &string_type);
-    simple_error_forward(error, "%s", "");
+    simple_error_check(error);
 
     struct simple_hashtable *table;
     table = simple_hashtable_new(string_type, string_type);
     simple_hashtable_destroy(table);
 
+    cleanup:
     return NULL;
 }
-
-
 
 int main() {
 
@@ -29,6 +30,7 @@ int main() {
     if (error) {
         simple_error_show(error, stderr);
         simple_error_destroy(error);
+        return 1;
     }
 
     struct simple_test_item *root, *hashtable;

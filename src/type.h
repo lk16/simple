@@ -3,16 +3,14 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+struct type_registry;
 struct type;
 struct object;
 struct simple_error;
 struct simple_string;
+enum object_kind;
 
-typedef struct simple_error *(*memberfunc_t)(
-    struct object *o,
-    const struct object *args,
-    struct object **result
-);
+extern struct type_registry *registry;
 
 struct simple_error *type_registry_new(
     void
@@ -24,7 +22,11 @@ struct simple_error *type_registry_destroy(
 
 struct simple_error *type_registry_get_type(
     const char *type_name,
-    const struct type **result
+    struct type **result
+) __attribute__((warn_unused_result));
+
+struct simple_error *type_registry_get_string_type(
+    struct type **result
 ) __attribute__((warn_unused_result));
 
 struct simple_error *type_registry_create_type(
@@ -43,99 +45,13 @@ struct simple_error *type_set_attribute(
     struct object *value
 ) __attribute__((warn_unused_result));
 
-struct simple_error *object_new_int(
-    int value,
-    struct object **result
-) __attribute__((warn_unused_result));
-
-struct simple_error *object_new_double(
-    double value,
-    struct object **result
-) __attribute__((warn_unused_result));
-
-struct simple_error *object_new_function(
-    memberfunc_t value,
-    struct object **result
-) __attribute__((warn_unused_result));
-
-struct simple_error *object_new_string(
-    struct object **result,
-    const char *format,
-    ...
-) __attribute__((warn_unused_result));
-
-struct simple_error *object_copy(
-    const struct object *o,
-    struct object **copy
-) __attribute__((warn_unused_result));
-
-void object_destroy(struct object *o);
-
-bool object_has_type(
-    const struct object *o,
-    const struct type *type
+struct simple_error *type_new(
+    const char *type_name,
+    enum object_kind instance_kind,
+    struct type **result
 );
 
-const struct type *object_type(
-    struct object *o
-) __attribute__((warn_unused_result));
-
-size_t object_get_hash(
-    const struct object *o
+struct simple_error *type_get_name(
+    const struct type *type,
+    const char **result
 );
-
-struct simple_error *object_equals(
-    const struct object *lhs,
-    const struct object *rhs,
-    bool *result
-);
-
-struct simple_error *object_get_int(
-    const struct object *o,
-    int *result
-) __attribute__((warn_unused_result));
-
-struct simple_error *object_get_double(
-    const struct object *o,
-    double *result
-) __attribute__((warn_unused_result));
-
-struct simple_error *object_get_string(
-    const struct object *o,
-    const struct simple_string **result
-) __attribute__((warn_unused_result));
-
-struct simple_error *object_set_int(
-    struct object *o,
-    int value
-) __attribute__((warn_unused_result));
-
-struct simple_error *object_set_double(
-    struct object *o,
-    double value
-) __attribute__((warn_unused_result));
-
-struct simple_error *object_set_attribute(
-    struct object *o,
-    const char *key,
-    struct object *value
-) __attribute__((warn_unused_result));
-
-struct simple_error *object_get_attribute(
-    struct object *o,
-    const char *key,
-    struct object **result
-) __attribute__((warn_unused_result));
-
-struct simple_error *object_get_attribute_const(
-    const struct object *o,
-    const char *key,
-    const struct object **result
-) __attribute__((warn_unused_result));
-
-struct simple_error *object_call(
-    struct object *o,
-    const char *key,
-    const struct object *args,
-    struct object **result
-) __attribute__((warn_unused_result));

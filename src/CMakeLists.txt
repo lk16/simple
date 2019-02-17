@@ -2,6 +2,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
 PROJECT(simple)
 
+SET(CMAKE_C_COMPILER "/usr/bin/clang")
 
 SET(FLAGS
     " -std=c11 -I .. -pthread -Wno-pedantic -Weverything -Wno-padded \
@@ -20,8 +21,9 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 ADD_LIBRARY(supersimple STATIC
     builtin_types.c
-    simple_hashtable.c
     simple_error.c
+    simple_hashtable.c
+    simple_object.c
     simple_string.c
     simple_test.c
     type.c

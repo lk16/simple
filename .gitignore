@@ -12,3 +12,6 @@ simple
 simple.kdev4
 *.kate-swp
 test
+.simple.workspace
+src/*.a
+test_simple

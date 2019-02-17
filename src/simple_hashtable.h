@@ -24,12 +24,6 @@ struct simple_error *simple_hashtable_find(
     struct object **result
 ) __attribute__((warn_unused_result));
 
-struct simple_error *simple_hashtable_find_const(
-    const struct simple_hashtable *table,
-    const struct object *key,
-    const struct object **result
-) __attribute__((warn_unused_result));
-
 struct simple_error *simple_hashtable_insert(
     struct simple_hashtable *table,
     const struct object *key,

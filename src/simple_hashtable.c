@@ -1,12 +1,21 @@
-#include "simple_hashtable.h"
-
 #include <malloc.h>
 #include <string.h>
+
+#include "simple_hashtable.h"
+#include "simple_object.h"
 
 struct simple_hashtable_entry {
     struct object *key, *value;
     struct simple_hashtable_entry *next;
 };
+
+static void simple_hashtable_entry_destroy(
+    struct simple_hashtable_entry *entry
+) {
+    object_refcount_decrease(entry->key);
+    object_refcount_decrease(entry->value);
+    free(entry);
+}
 
 static struct simple_error *simple_hashtable_entry_new(
     const struct object *key,
@@ -19,22 +28,19 @@ static struct simple_error *simple_hashtable_entry_new(
 
     struct simple_error *error;
     error = object_copy(key, &entry->key);
-    simple_error_forward(error, "%s", "");
+    simple_error_check(error);
 
     error = object_copy(value, &entry->value);
-    simple_error_forward(error, "%s", "");
+    simple_error_check(error);
 
     *result = entry;
     return NULL;
+
+    cleanup:
+    simple_hashtable_entry_destroy(entry);
+    return error;
 }
 
-static void simple_hashtable_entry_destroy(
-    struct simple_hashtable_entry *entry
-) {
-    object_destroy(entry->key);
-    object_destroy(entry->value);
-    free(entry);
-}
 
 struct simple_hashtable {
     const struct type *key_type, *value_type;
@@ -80,14 +86,21 @@ static double simple_hashtable_load_factor(
 
 static struct simple_error *simple_hashtable_get_bucket(
     const struct simple_hashtable *table,
-    const struct object *key, size_t *result
+    const struct object *key,
+    size_t *result
 ) {
-    if (!object_has_type(key, table->key_type)) {
-        *result = 0;
-        return simple_error_new(__FILE__, __LINE__, __FUNCTION__, "%s",
-            "Invalid key type provided.");
-    }
+    struct simple_error *error = NULL;
+    error = object_check_type(key, table->key_type);
+    simple_error_check(error);
+
     *result = object_get_hash(key) % table->bucket_count;
+
+    cleanup:
+    if (error) {
+        *result = 0;
+    }
+    return error;
+
     return NULL;
 } __attribute__((warn_unused_result))
 
@@ -106,7 +119,7 @@ static struct simple_error *simple_hashtable_rehash(
         entry = old_buckets[i];
         while (entry) {
             error = simple_hashtable_insert(table, entry->key, entry->value);
-            simple_error_forward(error, "%s", "");
+            simple_error_check(error);
             next = entry->next;
             simple_hashtable_entry_destroy(entry);
             entry = next;
@@ -114,6 +127,13 @@ static struct simple_error *simple_hashtable_rehash(
     }
     free(old_buckets);
     return NULL;
+
+    cleanup:
+    // TODO this leaks a lot, redo this
+    return error;
+
+
+
 } __attribute__((warn_unused_result))
 
 struct simple_error *simple_hashtable_find(
@@ -126,8 +146,7 @@ struct simple_error *simple_hashtable_find(
     struct simple_error *error;
 
     error = simple_hashtable_get_bucket(table, key, &bucket_id);
-    simple_error_forward(error, "%s",
-        "Could not determine if key is present in hashtable.");
+    simple_error_check(error);
 
     const struct simple_hashtable_entry *entry = table->buckets[bucket_id];
 
@@ -135,38 +154,16 @@ struct simple_error *simple_hashtable_find(
         bool equals;
         object_equals(entry->key, key, &equals);
         if (equals) {
+            object_refcount_increase(entry->value);
             *result = entry->value;
             return NULL;
         }
         entry = entry->next;
     }
 
+    cleanup:
     *result = NULL;
-    return NULL;
-}
-
-struct simple_error *simple_hashtable_find_const(
-    const struct simple_hashtable *table,
-    const struct object *key,
-    const struct object **result
-) {
-    size_t bucket_id;
-    struct simple_error *error;
-    error = simple_hashtable_get_bucket(table, key, &bucket_id);
-    simple_error_forward(error, "%s",
-        "Could not determine if key is present in hashtable.");
-
-    struct simple_hashtable_entry **entry_ptr = table->buckets + bucket_id;
-    while (*entry_ptr) {
-        bool equals;
-        object_equals((*entry_ptr)->key, key, &equals);
-        if (equals) {
-            *result = (*entry_ptr)->value;
-            return NULL;
-        }
-        *entry_ptr = (*entry_ptr)->next;
-    }
-    return NULL;
+    return error;
 }
 
 struct simple_error *simple_hashtable_insert(
@@ -176,15 +173,16 @@ struct simple_error *simple_hashtable_insert(
 ) {
     size_t bucket_id;
     struct simple_error *error;
+
     error = simple_hashtable_get_bucket(table, key, &bucket_id);
-    simple_error_forward(error, "%s",
-            "Could not determine if key is present in hashtable.");
+    simple_error_check(error);
 
     struct simple_hashtable_entry *entry = table->buckets[bucket_id];
 
     while (entry) {
         bool equals;
-        object_equals(entry->key, key, &equals);
+        error = object_equals(entry->key, key, &equals);
+        simple_error_check(error);
         if (equals) {
             break;
         }
@@ -192,21 +190,24 @@ struct simple_error *simple_hashtable_insert(
     }
 
     if (entry) {
+        object_refcount_decrease(entry->value);
         error = object_copy(value, &entry->value);
     } else {
         struct simple_hashtable_entry **bucket_head;
         bucket_head = table->buckets + bucket_id;
         error = simple_hashtable_entry_new(key, value, *bucket_head,
             bucket_head);
+        simple_error_check(error);
         table->size++;
     }
-    simple_error_forward(error, "%s", "");
 
     if (simple_hashtable_load_factor(table) > 0.75) {
         error = simple_hashtable_rehash(table);
-        simple_error_forward(error, "%s", "");
+        simple_error_check(error);
     }
-    return NULL;
+
+    cleanup:
+    return error;
 }
 
 struct simple_error *simple_hashtable_erase(
@@ -217,14 +218,14 @@ struct simple_error *simple_hashtable_erase(
     size_t bucket_id;
     struct simple_error *error;
     error = simple_hashtable_get_bucket(table, key, &bucket_id);
-    simple_error_forward(error, "%s",
-            "Could not determine if key is present in hashtable.");
+    simple_error_check(error);
 
     struct simple_hashtable_entry **entry = table->buckets + bucket_id;
 
     while (*entry) {
         bool equals;
         object_equals((*entry)->key, key, &equals);
+        simple_hashtable_entry_destroy(*entry);
         if (equals) {
             *entry = (*entry)->next;
             *erased = true;
@@ -234,7 +235,9 @@ struct simple_error *simple_hashtable_erase(
         entry = &((*entry)->next);
     }
     *erased = false;
-    return NULL;
+
+    cleanup:
+    return error;
 }
 
 size_t simple_hashtable_size(

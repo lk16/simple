@@ -9,29 +9,21 @@ int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
 
-    struct object *o;
     struct simple_error *error;
-    const struct simple_string *string;
 
     error = type_registry_new();
     if (error) {
         simple_error_show(error, stdout);
         simple_error_destroy(error);
+        return 1;
     }
-
-    error = object_new_string(&o, "%s, %s!\n", "Hello", "world");
+    
+    error = type_registry_destroy();
     if (error) {
         simple_error_show(error, stdout);
         simple_error_destroy(error);
+        return 1;
     }
-
-    error = object_get_string(o, &string);
-    if (error) {
-        simple_error_show(error, stdout);
-        simple_error_destroy(error);
-    }
-
-    printf("%s", simple_string_get(string));
 
     return 0;
 }
